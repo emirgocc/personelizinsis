@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, Modal, Pressable } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import InfoPanel from '../components/InfoPanel';
+import ActionButtons from '../components/ActionButtons';
+import CalendarPanel from '../components/CalendarPanel';
 // DateTimePicker importunu kaldırıyoruz
 
 const API_URL = 'http://192.168.1.105:8000';
@@ -19,6 +22,9 @@ export default function TakvimScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthCache, setMonthCache] = useState({}); // { '2024-06': { '2024-06-01': 2, ... } }
   const [visibleMonth, setVisibleMonth] = useState(currentDate.toISOString().slice(0, 7));
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [pendingDays, setPendingDays] = useState([]);
+  const [pendingRange, setPendingRange] = useState({ start: null, end: null });
 
   // Yardımcı: iki tarih arası tüm günleri dizi olarak döndür
   function getDateRange(start, end) {
@@ -169,50 +175,31 @@ export default function TakvimScreen() {
   };
 
   // + butonuna tıklanınca
-  const handlePlus = async () => {
+  const handlePlus = () => {
     if (!startDate) {
       Alert.alert('Uyarı', 'Lütfen önce bir gün veya aralık seçin.');
       return;
     }
     let days = [startDate];
     if (endDate) days = getDateRange(startDate, endDate);
-    const monthStr = visibleMonth;
-    const monthDays = monthCache[monthStr] || {};
-    const doluGunler = days.filter(d => (monthDays[d] || 0) >= limit);
-    const uygunGunler = days.filter(d => !doluGunler.includes(d));
-    if (doluGunler.length > 0 && uygunGunler.length > 0) {
-      Alert.alert(
-        'Uygun Olmayan Günler',
-        `Şu günler dolu: ${doluGunler.join(', ')}\nSadece uygun günler için izin talep edilsin mi?`,
-        [
-          { text: 'Vazgeç', style: 'cancel' },
-          { text: 'Evet', onPress: () => sendLeaveRequests(uygunGunler) },
-        ]
-      );
-      return;
-    } else if (doluGunler.length > 0) {
-      Alert.alert('Uyarı', `Tüm seçili günler dolu: ${doluGunler.join(', ')}`);
-      return;
-    }
-    // Tüm günler uygun
-    sendLeaveRequests(days);
+    setPendingDays(days);
+    setPendingRange({ start: startDate, end: endDate });
+    setConfirmVisible(true);
   };
 
-  const sendLeaveRequests = async (days) => {
+  const sendLeaveRequest = async () => {
     setLoading(true);
+    setConfirmVisible(false);
     try {
-      for (const d of days) {
-        await axios.post(`${API_URL}/leaves/create`, {
-          start_date: d,
-          end_date: d,
-        }, {
-          headers: { Authorization: user.token },
-        });
-      }
+      await axios.post(`${API_URL}/leaves/create`, {
+        start_date: pendingRange.start,
+        end_date: pendingRange.end || pendingRange.start,
+      }, {
+        headers: { Authorization: user.token },
+      });
       Alert.alert('Başarılı', 'İzin talebiniz gönderildi.');
       setStartDate(null);
       setEndDate(null);
-      // İzinlerim ekranı için veri güncellensin diye event veya benzeri bir yöntem eklenebilir.
     } catch (e) {
       Alert.alert('Hata', 'İzin talebi gönderilemedi.');
     }
@@ -227,99 +214,55 @@ export default function TakvimScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
-      <Calendar
-        onDayPress={handleDayPress}
+      <CalendarPanel
+        currentDate={currentDate}
         markedDates={markedDates}
-        markingType={'custom'}
-        current={currentDate.toISOString().slice(0, 10)}
-        minDate={new Date().toISOString().slice(0, 10)}
-        onMonthChange={handleMonthChange}
-        theme={{
-          calendarBackground: '#f5f7fa',
-          todayTextColor: '#1976d2',
-          dayTextColor: '#222',
-          textDisabledColor: '#bdbdbd',
-          arrowColor: '#1976d2',
-        }}
-        style={{ margin: 8, borderRadius: 16, overflow: 'hidden', elevation: 2 }}
+        handleDayPress={handleDayPress}
+        handleMonthChange={handleMonthChange}
       />
       {/* Info paneli: takvimle tam uyumlu, sola yaslı, modern kutu, shadow ile */}
       <View style={{ alignItems: 'center', marginTop: 16 }}>
-        <View style={{
-          backgroundColor: '#f7fafd',
-          borderRadius: 14,
-          paddingVertical: 16,
-          paddingHorizontal: 18,
-          minWidth: 320,
-          width: '92%',
-          borderWidth: 1.2,
-          borderColor: '#e0e0e0',
-          marginBottom: 8,
-          alignItems: 'flex-start',
-          elevation: 2,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 4,
-        }}>
-          {startDate ? (
-            <>
-              <Text style={{ fontSize: 16, color: '#111', fontWeight: '500', textAlign: 'left', marginBottom: 6 }}>
-                {(() => {
-                  let days = [startDate];
-                  if (endDate) days = getDateRange(startDate, endDate);
-                  const formatDate = d => {
-                    const [y, m, g] = d.split('-');
-                    return `${g}/${m}/${y}`;
-                  };
-                  if (days.length === 1) return `Seçili Tarih: ${formatDate(days[0])}`;
-                  return `Seçili Tarihler: ${formatDate(days[0])} - ${formatDate(days[days.length - 1])}`;
-                })()}
-              </Text>
-              {(() => {
-                let days = [startDate];
-                if (endDate) days = getDateRange(startDate, endDate);
-                const monthStr = visibleMonth;
-                const monthDays = monthCache[monthStr] || {};
-                const doluGunler = days.filter(d => (monthDays[d] || 0) >= limit);
-                const formatDate = d => {
-                  const [y, m, g] = d.split('-');
-                  return `${g}/${m}/${y}`;
-                };
-                if (doluGunler.length > 0) {
-                  return (
-                    <Text style={{ fontSize: 15, color: '#e53935', fontWeight: 'bold', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>
-                      {`Uygun olmayan günler: ${doluGunler.map(formatDate).join(', ')}`}
-                    </Text>
-                  );
-                } else {
-                  return (
-                    <Text style={{ fontSize: 15, color: '#111', fontWeight: '400', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>
-                      Müsait
-                    </Text>
-                  );
-                }
-              })()}
-            </>
-          ) : (
-            <>
-              <Text style={{ fontSize: 16, color: '#111', fontWeight: '500', textAlign: 'left', marginBottom: 6 }}>Seçili Tarih: -</Text>
-              <Text style={{ fontSize: 15, color: '#111', fontWeight: '400', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>-</Text>
-            </>
-          )}
-        </View>
+        <InfoPanel
+          startDate={startDate}
+          endDate={endDate}
+          visibleMonth={visibleMonth}
+          monthCache={monthCache}
+          limit={limit}
+          getDateRange={getDateRange}
+        />
       </View>
-      {/* Sağ alt köşede x yukarıda, + aşağıda, alt alta büyük ikonlar */}
       {startDate && (
-        <View style={{ position: 'absolute', right: 24, bottom: 32, alignItems: 'center' }}>
-          <TouchableOpacity onPress={handleClear} style={{ marginBottom: 16 }}>
-            <MaterialIcons name="cancel" size={56} color="#e53935" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePlus}>
-            <MaterialIcons name="add-circle" size={56} color="#1976d2" />
-          </TouchableOpacity>
-        </View>
+        <ActionButtons
+          onClear={handleClear}
+          onPlus={handlePlus}
+        />
       )}
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, minWidth: 280, alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>İzin Talebi</Text>
+            <Text style={{ fontSize: 16, marginBottom: 8 }}>
+              {pendingRange.start && pendingRange.end && pendingRange.start !== pendingRange.end
+                ? `Seçili Tarihler: ${pendingRange.start} - ${pendingRange.end}`
+                : `Seçili Tarih: ${pendingRange.start}`}
+            </Text>
+            <Text style={{ fontSize: 15, color: '#666', marginBottom: 18 }}>İzin talebi göndermek istediğinize emin misiniz?</Text>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <Pressable onPress={() => setConfirmVisible(false)} style={{ backgroundColor: '#e0e0e0', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 22, marginRight: 8 }}>
+                <Text style={{ color: '#222', fontWeight: 'bold', fontSize: 16 }}>Vazgeç</Text>
+              </Pressable>
+              <Pressable onPress={sendLeaveRequest} style={{ backgroundColor: '#1976d2', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 22 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Evet</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

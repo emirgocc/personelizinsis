@@ -11,11 +11,24 @@ require_once __DIR__.'/db.php';
 require_once __DIR__.'/auth.php';
 require_once __DIR__.'/leaves.php';
 require_once __DIR__.'/teams.php';
-createTables($db);
-seedData($db);
+// Tabloları ve örnek verileri oluşturma kodları kaldırıldı. Sadece mevcut veritabanı ile çalışır.
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
+
+if (!function_exists('getallheaders')) {
+    function getallheaders() {
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
+    }
+}
+// Header loglama
+file_put_contents('php://stderr', print_r(getallheaders(), true));
 
 // --- /login ---
 if ($path == '/login' && $method == 'POST') {
@@ -25,8 +38,8 @@ if ($path == '/login' && $method == 'POST') {
 // --- Auth gerektiren endpointler ---
 $protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update'];
 if (in_array($path, $protected)) {
-    $headers = getallheaders();
-    $token = $headers['Authorization'] ?? '';
+    $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    $token = $headers['authorization'] ?? '';
     if (!$token) response(["error"=>"Token gerekli."], 401);
     $user = verifyToken($db, $token);
     if (!$user) response(["error"=>"Geçersiz token."], 401);
