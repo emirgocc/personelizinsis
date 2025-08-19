@@ -169,12 +169,54 @@ export default function TakvimScreen() {
   };
 
   // + butonuna tıklanınca
-  const handlePlus = () => {
+  const handlePlus = async () => {
     if (!startDate) {
       Alert.alert('Uyarı', 'Lütfen önce bir gün veya aralık seçin.');
       return;
     }
-    Alert.alert('İzin Talebi', getInfoText());
+    let days = [startDate];
+    if (endDate) days = getDateRange(startDate, endDate);
+    const monthStr = visibleMonth;
+    const monthDays = monthCache[monthStr] || {};
+    const doluGunler = days.filter(d => (monthDays[d] || 0) >= limit);
+    const uygunGunler = days.filter(d => !doluGunler.includes(d));
+    if (doluGunler.length > 0 && uygunGunler.length > 0) {
+      Alert.alert(
+        'Uygun Olmayan Günler',
+        `Şu günler dolu: ${doluGunler.join(', ')}\nSadece uygun günler için izin talep edilsin mi?`,
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          { text: 'Evet', onPress: () => sendLeaveRequests(uygunGunler) },
+        ]
+      );
+      return;
+    } else if (doluGunler.length > 0) {
+      Alert.alert('Uyarı', `Tüm seçili günler dolu: ${doluGunler.join(', ')}`);
+      return;
+    }
+    // Tüm günler uygun
+    sendLeaveRequests(days);
+  };
+
+  const sendLeaveRequests = async (days) => {
+    setLoading(true);
+    try {
+      for (const d of days) {
+        await axios.post(`${API_URL}/leaves/create`, {
+          start_date: d,
+          end_date: d,
+        }, {
+          headers: { Authorization: user.token },
+        });
+      }
+      Alert.alert('Başarılı', 'İzin talebiniz gönderildi.');
+      setStartDate(null);
+      setEndDate(null);
+      // İzinlerim ekranı için veri güncellensin diye event veya benzeri bir yöntem eklenebilir.
+    } catch (e) {
+      Alert.alert('Hata', 'İzin talebi gönderilemedi.');
+    }
+    setLoading(false);
   };
 
   // Çarpı butonuna tıklanınca

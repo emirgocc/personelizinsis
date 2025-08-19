@@ -6,6 +6,8 @@ import { View, Text } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import TakvimScreen from './src/screens/TakvimScreen';
+import IzinlerimScreen from './src/screens/IzinlerimScreen';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,13 +27,6 @@ const theme = {
 };
 
 // Placeholder ekranlar
-function IzinlerimScreen() {
-  return (
-    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-      <Text>İzinlerim Ekranı</Text>
-    </View>
-  );
-}
 function ProfilScreen() {
   return (
     <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
@@ -57,18 +52,66 @@ function EkipAyarScreen() {
 function PersonelTabs() {
   return (
     <Tab.Navigator initialRouteName="Takvim">
-      <Tab.Screen name="Takvim" component={TakvimScreen} />
-      <Tab.Screen name="İzinlerim" component={IzinlerimScreen} />
-      <Tab.Screen name="Profil" component={ProfilScreen} />
+      <Tab.Screen 
+        name="Takvim" 
+        component={TakvimScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="calendar-today" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="İzinlerim" 
+        component={IzinlerimScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="event-available" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Profil" 
+        component={ProfilScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="person" color={color} size={size} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
 function AmirTabs() {
   return (
     <Tab.Navigator initialRouteName="BekleyenOnaylar">
-      <Tab.Screen name="Bekleyen Onaylar" component={BekleyenOnaylarScreen} />
-      <Tab.Screen name="Ekip Ayarları" component={EkipAyarScreen} />
-      <Tab.Screen name="Profil" component={ProfilScreen} />
+      <Tab.Screen 
+        name="Bekleyen Onaylar" 
+        component={BekleyenOnaylarScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="pending-actions" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Ekip Ayarları" 
+        component={EkipAyarScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="group" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Profil" 
+        component={ProfilScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="person" color={color} size={size} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
