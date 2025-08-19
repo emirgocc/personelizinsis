@@ -16,6 +16,7 @@
     "@react-navigation/native-stack": "^6.9.18",
     "axios": "^1.6.7",
     "expo": "^53.0.0",
+    "expo-linear-gradient": "^14.1.5",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-calendars": "^1.1299.0",
