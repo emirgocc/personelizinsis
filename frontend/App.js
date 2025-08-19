@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
+import TakvimScreen from './src/screens/TakvimScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -24,13 +25,6 @@ const theme = {
 };
 
 // Placeholder ekranlar
-function TakvimScreen() {
-  return (
-    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-      <Text>Takvim Ekranı</Text>
-    </View>
-  );
-}
 function IzinlerimScreen() {
   return (
     <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
