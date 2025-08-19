@@ -73,6 +73,20 @@ if ($path == '/leaves/approve' && $method == 'POST') {
 if ($path == '/teams/update' && $method == 'POST') {
     handleTeamUpdate($db, $user);
 }
+// --- /me ---
+if ($path == '/me' && $method == 'GET') {
+    $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    $token = $headers['authorization'] ?? '';
+    if (!$token) response(["error"=>"Token gerekli."], 401);
+    $user = verifyToken($db, $token);
+    if (!$user) response(["error"=>"Geçersiz token."], 401);
+    response([
+        "email" => $user['email'],
+        "first_name" => $user['first_name'],
+        "last_name" => $user['last_name'],
+        "photo" => $user['photo']
+    ]);
+}
 // --- Default ---
 if ($path == '/' || $path == '/index.php') {
     response(["status"=>"OK", "message"=>"Kurulum tamamlandı."]);

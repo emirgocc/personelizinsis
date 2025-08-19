@@ -2,12 +2,15 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
+import { View, Text, Image, Button, ActivityIndicator, Alert } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import TakvimScreen from './src/screens/TakvimScreen';
 import IzinlerimScreen from './src/screens/IzinlerimScreen';
+import ProfilScreen from './src/screens/ProfilScreen';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -26,14 +29,7 @@ const theme = {
   },
 };
 
-// Placeholder ekranlar
-function ProfilScreen() {
-  return (
-    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-      <Text>Profil Ekranı</Text>
-    </View>
-  );
-}
+// ProfilScreen fonksiyonu kaldırıldı
 function BekleyenOnaylarScreen() {
   return (
     <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
