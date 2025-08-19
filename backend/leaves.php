@@ -59,7 +59,7 @@ function handleLeavesMonth($db, $user) {
     $team_id = $user['team_id'];
     $start = $month . '-01';
     $end = date('Y-m-t', strtotime($start));
-    $leaves = $db->query("SELECT start_date, end_date FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date <= '$end' AND l.end_date >= '$start' AND u.team_id=$team_id AND l.status IN ('onaylı','beklemede')")->fetchAll(PDO::FETCH_ASSOC);
+    $leaves = $db->query("SELECT start_date, end_date FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date <= '$end' AND l.end_date >= '$start' AND u.team_id=$team_id AND l.status = 'onaylı'")->fetchAll(PDO::FETCH_ASSOC);
     $days = [];
     $date = $start;
     while ($date <= $end) {
