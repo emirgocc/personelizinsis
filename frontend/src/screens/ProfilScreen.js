@@ -39,17 +39,18 @@ export default function ProfilScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f7fa' }} contentContainerStyle={{ flexGrow: 1 }}>
-      {/* Üst arka plan */}
-      <View style={styles.topBg} />
-      {/* Profil fotoğrafı */}
-      <View style={styles.avatarWrap}>
-        {profile.photo ? (
-          <Image source={{ uri: profile.photo }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <MaterialIcons name="person" size={54} color="#bdbdbd" />
-          </View>
-        )}
+      {/* Üst arka plan ve profil fotoğrafı için relative container */}
+      <View style={{ position: 'relative' }}>
+        <View style={styles.topBg} />
+        <View style={styles.avatarWrap}>
+          {profile.photo ? (
+            <Image source={{ uri: profile.photo }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <MaterialIcons name="person" size={54} color="#bdbdbd" />
+            </View>
+          )}
+        </View>
       </View>
       {/* Bilgiler ve log out için beyaz zemin */}
       <View style={styles.whiteSection}>
@@ -80,14 +81,18 @@ export default function ProfilScreen() {
 
 const styles = StyleSheet.create({
   topBg: {
-    height: 90,
+    height: 80,
     backgroundColor: '#f5f7fa', // Uygulamanın genel arka plan rengi
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
   avatarWrap: {
+    position: 'absolute',
+    zIndex: 2,
+    top: 70,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    marginTop: -50,
     marginBottom: 8,
   },
   avatar: {
@@ -112,8 +117,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    marginTop: 0,
-    paddingTop: 16,
+    marginTop: 45,
+    paddingTop: 24,
     flex: 1,
     minHeight: 350,
   },
@@ -126,6 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#111',
+    marginTop: 14,
     marginBottom: 14,
     textAlign: 'center',
   },
