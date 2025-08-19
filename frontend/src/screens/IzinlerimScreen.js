@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,21 +10,31 @@ export default function IzinlerimScreen() {
   const [izinler, setIzinler] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchIzinler = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/leaves/mine`, {
+        headers: { Authorization: user.token },
+      });
+      setIzinler(res.data);
+      setError(null);
+    } catch (e) {
+      setError('İzinler alınamadı.');
+    }
+    setLoading(false);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const fetchIzinler = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/leaves/mine`, {
-          headers: { Authorization: user.token },
-        });
-        setIzinler(res.data);
-      } catch (e) {
-        setError('İzinler alınamadı.');
-      }
-      setLoading(false);
-    };
     fetchIzinler();
   }, [user.token]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchIzinler(false);
+  };
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color="#1976d2" /></View>;
@@ -47,6 +57,9 @@ export default function IzinlerimScreen() {
           <Text style={styles.status}>{item.status}</Text>
         </View>
       )}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     />
   );
 }

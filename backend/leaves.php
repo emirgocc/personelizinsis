@@ -9,11 +9,33 @@ function handleCreateLeave($db, $user) {
     $team_id = $user['team_id'];
     $team = $db->query("SELECT * FROM teams WHERE id=$team_id")->fetch(PDO::FETCH_ASSOC);
     $max = $team['max_leave_count'];
-    $count = $db->query("SELECT COUNT(*) FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date='$start' AND l.status IN ('onaylı','beklemede') AND u.team_id=$team_id")->fetchColumn();
-    if ($count >= $max) {
-        response(["error"=>"Bu tarihte izin hakkı dolmuştur."], 400);
+    // Tarih aralığı oluştur
+    $dates = [];
+    if ($start && $end && $start !== $end) {
+        $dt = strtotime($start);
+        $endDt = strtotime($end);
+        while ($dt <= $endDt) {
+            $dates[] = date('Y-m-d', $dt);
+            $dt = strtotime('+1 day', $dt);
+        }
+    } else if ($start) {
+        $dates[] = $start;
     }
-    $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status) VALUES (".$user['id'].", '$start', '$end', '$status')");
+    // Her gün için doluluk kontrolü
+    $doluGunler = [];
+    foreach ($dates as $d) {
+        $count = $db->query("SELECT COUNT(*) FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date='$d' AND l.status IN ('onaylı','beklemede') AND u.team_id=$team_id")->fetchColumn();
+        if ($count >= $max) {
+            $doluGunler[] = $d;
+        }
+    }
+    if (count($doluGunler) > 0) {
+        response(["error"=>"Bazı günlerde izin hakkı dolmuştur.", "full_days"=>$doluGunler], 400);
+    }
+    // Her gün için izin kaydı oluştur
+    foreach ($dates as $d) {
+        $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status) VALUES (".$user['id'].", '$d', '$d', '$status')");
+    }
     response(["success"=>true]);
 }
 
@@ -37,17 +59,23 @@ function handleLeavesMonth($db, $user) {
     $team_id = $user['team_id'];
     $start = $month . '-01';
     $end = date('Y-m-t', strtotime($start));
-    $stmt = $db->prepare("SELECT start_date, COUNT(*) as count FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date BETWEEN :start AND :end AND u.team_id=:team_id AND l.status IN ('onaylı','beklemede') GROUP BY l.start_date");
-    $stmt->execute([':start' => $start, ':end' => $end, ':team_id' => $team_id]);
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $leaves = $db->query("SELECT start_date, end_date FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date <= '$end' AND l.end_date >= '$start' AND u.team_id=$team_id AND l.status IN ('onaylı','beklemede')")->fetchAll(PDO::FETCH_ASSOC);
     $days = [];
     $date = $start;
     while ($date <= $end) {
         $days[$date] = 0;
         $date = date('Y-m-d', strtotime($date . ' +1 day'));
     }
-    foreach ($result as $row) {
-        $days[$row['start_date']] = intval($row['count']);
+    foreach ($leaves as $row) {
+        $s = max($row['start_date'], $start);
+        $e = min($row['end_date'], $end);
+        $dt = strtotime($s);
+        $endDt = strtotime($e);
+        while ($dt <= $endDt) {
+            $d = date('Y-m-d', $dt);
+            if (isset($days[$d])) $days[$d]++;
+            $dt = strtotime('+1 day', $dt);
+        }
     }
     response($days);
 }

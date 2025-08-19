@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, Modal, Pressable, RefreshControl, ScrollView } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -39,14 +39,18 @@ export default function TakvimScreen() {
   }
 
   // Ay değişince backend'den toplu izinli günleri çek
-  const fetchMonth = async (monthStr) => {
-    if (monthCache[monthStr]) return; // cache varsa tekrar çekme
+  const fetchMonth = async (monthStr, force = false) => {
+    if (!force && monthCache[monthStr]) return; // cache varsa tekrar çekme
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/leaves/month?month=${monthStr}`, {
         headers: { Authorization: user.token },
       });
-      setMonthCache(prev => ({ ...prev, [monthStr]: res.data }));
+      setMonthCache(prev => {
+        const updated = { ...prev, [monthStr]: res.data };
+        return updated;
+      });
+      setTimeout(updateMarks, 0); // veri geldikten sonra işaretlemeleri güncelle
     } catch (e) {}
     setLoading(false);
   };
@@ -149,6 +153,14 @@ export default function TakvimScreen() {
     fetchMonth(monthStr);
   };
 
+  const onRefresh = async () => {
+    setLoading(true);
+    setMonthCache(prev => ({ ...prev, [visibleMonth]: undefined })); // sadece aktif ayı temizle
+    await fetchMonth(visibleMonth, true); // force fetch
+    setLoading(false);
+    // updateMarks artık fetchMonth içinde veri geldikten sonra çağrılıyor
+  };
+
   useEffect(() => {
     fetchMonth(visibleMonth);
     // eslint-disable-next-line
@@ -214,22 +226,30 @@ export default function TakvimScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
-      <CalendarPanel
-        currentDate={currentDate}
-        markedDates={markedDates}
-        handleDayPress={handleDayPress}
-        handleMonthChange={handleMonthChange}
-      />
-      {/* Info paneli: takvimle tam uyumlu, sola yaslı, modern kutu, shadow ile */}
-      <View style={{ alignItems: 'center', marginTop: 16 }}>
-        <InfoPanel
-          startDate={startDate}
-          endDate={endDate}
-          visibleMonth={visibleMonth}
-          monthCache={monthCache}
-          limit={limit}
-          getDateRange={getDateRange}
-        />
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+          }
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <CalendarPanel
+            currentDate={currentDate}
+            markedDates={markedDates}
+            handleDayPress={handleDayPress}
+            handleMonthChange={handleMonthChange}
+          />
+          <View style={{ alignItems: 'center', marginTop: 16 }}>
+            <InfoPanel
+              startDate={startDate}
+              endDate={endDate}
+              visibleMonth={visibleMonth}
+              monthCache={monthCache}
+              limit={limit}
+              getDateRange={getDateRange}
+            />
+          </View>
+        </ScrollView>
       </View>
       {startDate && (
         <ActionButtons
@@ -266,64 +286,3 @@ export default function TakvimScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  modalBg: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 28,
-    minHeight: height * 0.45,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  sheetHandle: {
-    width: 48,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#e0e0e0',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976d2',
-    marginBottom: 16,
-  },
-  izinBtn: {
-    backgroundColor: '#1976d2',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    marginBottom: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  izinBtnText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  kapatBtn: {
-    backgroundColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    width: '100%',
-    alignItems: 'center',
-  },
-  kapatBtnText: {
-    color: '#222',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
