@@ -86,7 +86,7 @@ function handleLeavesMonth($db, $user) {
 
 function handleLeavesPending($db, $user) {
     if ($user['role'] != 'admin') response(["error"=>"Yetki yok."], 403);
-    $pending = $db->query("SELECT l.id, u.email, l.start_date, l.end_date, l.status FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.status='beklemede' ORDER BY l.start_date")->fetchAll(PDO::FETCH_ASSOC);
+    $pending = $db->query("SELECT l.id, u.email, u.first_name, u.last_name, l.start_date, l.end_date, l.status FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.status='beklemede' ORDER BY l.start_date")->fetchAll(PDO::FETCH_ASSOC);
     response($pending);
 }
 

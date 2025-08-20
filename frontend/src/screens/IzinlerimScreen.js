@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, ScrollView } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl, API } from '../config/config';
@@ -65,24 +66,61 @@ export default function IzinlerimScreen() {
       return `${g}/${m}/${y}`;
     };
 
-    const getStatusText = (status) => {
+    const getStatusInfo = (status) => {
       switch (status?.toLowerCase()) {
         case 'beklemede':
-          return 'Cevap Bekliyor';
+          return {
+            icon: 'pending',
+            color: '#ff9800',
+            bgColor: '#fff3e0',
+            text: 'Beklemede'
+          };
         case 'onaylı':
-          return 'Onaylandı';
-        case 'rejected':
-          return 'Reddedildi';
+          return {
+            icon: 'check-circle',
+            color: '#4caf50',
+            bgColor: '#e8f5e8',
+            text: 'Onaylandı'
+          };
+        case 'reddedildi':
+          return {
+            icon: 'cancel',
+            color: '#f44336',
+            bgColor: '#ffebee',
+            text: 'Reddedildi'
+          };
         case 'cancelled':
-          return 'İptal Edildi';
+          return {
+            icon: 'block',
+            color: '#9e9e9e',
+            bgColor: '#f5f5f5',
+            text: 'İptal Edildi'
+          };
         case 'completed':
-          return 'Tamamlandı';
+          return {
+            icon: 'done-all',
+            color: '#2196f3',
+            bgColor: '#e3f2fd',
+            text: 'Tamamlandı'
+          };
         case 'in_progress':
-          return 'İşlemde';
+          return {
+            icon: 'hourglass-empty',
+            color: '#ff9800',
+            bgColor: '#fff3e0',
+            text: 'İşlemde'
+          };
         default:
-          return status || 'Bilinmiyor';
+          return {
+            icon: 'help',
+            color: '#9e9e9e',
+            bgColor: '#f5f5f5',
+            text: status || 'Bilinmiyor'
+          };
       }
     };
+
+    const statusInfo = getStatusInfo(item.status);
 
     return (
       <View>
@@ -94,9 +132,17 @@ export default function IzinlerimScreen() {
                 : `${formatDate(item.start_date)} - ${formatDate(item.end_date)}`
               }
             </Text>
-            <Text style={styles.statusText}>
-              {getStatusText(item.status)}
-            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+              <MaterialIcons 
+                name={statusInfo.icon} 
+                size={16} 
+                color={statusInfo.color} 
+                style={styles.statusIcon}
+              />
+              <Text style={[styles.statusText, { color: statusInfo.color }]}>
+                {statusInfo.text}
+              </Text>
+            </View>
           </View>
         </View>
         {index < izinler.length - 1 && <View style={styles.separator} />}
@@ -204,16 +250,26 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: '500',
     color: '#888',
     marginBottom: 6,
     textAlign: 'left',
   },
   statusText: {
-    fontSize: 15,
-    color: '#111',
+    fontSize: 14,
     fontWeight: '500',
     textAlign: 'left',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  statusIcon: {
+    marginRight: 6,
   },
   separator: {
     borderBottomWidth: 1.5,

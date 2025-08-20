@@ -36,7 +36,7 @@ if ($path == '/login' && $method == 'POST') {
 }
 
 // --- Auth gerektiren endpointler ---
-$protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update'];
+$protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update','/teams/info','/teams/members'];
 if (in_array($path, $protected)) {
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $token = $headers['authorization'] ?? '';
@@ -72,6 +72,14 @@ if ($path == '/leaves/approve' && $method == 'POST') {
 // --- /teams/update ---
 if ($path == '/teams/update' && $method == 'POST') {
     handleTeamUpdate($db, $user);
+}
+// --- /teams/info ---
+if ($path == '/teams/info' && $method == 'GET') {
+    handleTeamInfo($db, $user);
+}
+// --- /teams/members ---
+if ($path == '/teams/members' && $method == 'GET') {
+    handleTeamMembers($db, $user);
 }
 // --- /me ---
 if ($path == '/me' && $method == 'GET') {

@@ -27,6 +27,8 @@ export const CONFIG = {
     },
     TEAMS: {
       UPDATE: '/teams/update',
+      INFO: '/teams/info',
+      MEMBERS: '/teams/members',
     },
   },
 };

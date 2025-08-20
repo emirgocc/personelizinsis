@@ -8,6 +8,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import TakvimScreen from './src/screens/TakvimScreen';
 import IzinlerimScreen from './src/screens/IzinlerimScreen';
 import ProfilScreen from './src/screens/ProfilScreen';
+import BekleyenOnaylarScreen from './src/screens/BekleyenOnaylarScreen';
+import EkipAyarScreen from './src/screens/EkipAyarScreen';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -30,20 +32,6 @@ const theme = {
 };
 
 // ProfilScreen fonksiyonu kaldırıldı
-function BekleyenOnaylarScreen() {
-  return (
-    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-      <Text>Bekleyen Onaylar Ekranı</Text>
-    </View>
-  );
-}
-function EkipAyarScreen() {
-  return (
-    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-      <Text>Ekip Ayarları Ekranı</Text>
-    </View>
-  );
-}
 
 function PersonelTabs() {
   return (

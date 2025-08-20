@@ -4,9 +4,20 @@
 function handleTeamUpdate($db, $user) {
     if ($user['role'] != 'admin') response(["error"=>"Yetki yok."], 403);
     $input = getInput();
-    $team_id = intval($input['team_id'] ?? 0);
     $max = intval($input['max_leave_count'] ?? 2);
-    $member_count = intval($input['member_count'] ?? 0);
-    $db->exec("UPDATE teams SET max_leave_count=$max, member_count=$member_count WHERE id=$team_id");
+    $team_id = $user['team_id'];
+    $db->exec("UPDATE teams SET max_leave_count=$max WHERE id=$team_id");
     response(["success"=>true]);
+}
+
+function handleTeamInfo($db, $user) {
+    $team_id = $user['team_id'];
+    $team = $db->query("SELECT * FROM teams WHERE id=$team_id")->fetch(PDO::FETCH_ASSOC);
+    response($team);
+}
+
+function handleTeamMembers($db, $user) {
+    $team_id = $user['team_id'];
+    $members = $db->query("SELECT id, email, first_name, last_name, role FROM users WHERE team_id=$team_id ORDER BY role DESC, first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    response($members);
 }
