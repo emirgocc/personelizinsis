@@ -73,8 +73,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   dateText: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '400',
     color: '#888',
     marginBottom: 10,
     textAlign: 'center',
