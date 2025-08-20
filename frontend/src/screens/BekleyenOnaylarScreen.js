@@ -103,22 +103,22 @@ export default function BekleyenOnaylarScreen() {
                 style={[styles.actionBtn, styles.rejectBtn]} 
                 onPress={() => handleApprove(item.id, 'reddet')}
               >
-                <MaterialIcons name="close" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Reddet</Text>
+                <MaterialIcons name="close" size={20} color="#f44336" />
+                <Text style={[styles.actionBtnText, { color: '#f44336' }]}>Reddet</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.actionBtn, styles.approveBtn]} 
                 onPress={() => handleApprove(item.id, 'onayla')}
               >
-                <MaterialIcons name="check" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Onayla</Text>
+                <MaterialIcons name="check" size={20} color="#4caf50" />
+                <Text style={[styles.actionBtnText, { color: '#4caf50' }]}>Onayla</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
         
-        {index < pendingLeaves.length - 1 && <View style={styles.separator} />}
+        <View style={styles.separator} />
       </View>
     );
   };
@@ -280,7 +280,8 @@ const styles = StyleSheet.create({
   },
   expandedContent: {
     backgroundColor: '#fff',
-    paddingVertical: 16,
+    paddingTop: 0,
+    paddingBottom: 10,
     paddingHorizontal: 32,
   },
   actionButtons: {
@@ -291,21 +292,24 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    minWidth: 120,
+    paddingVertical: 8,
+    paddingHorizontal: 45,
+    borderRadius: 16,
+    minWidth: 100,
     justifyContent: 'center',
     gap: 6,
   },
   rejectBtn: {
-    backgroundColor: '#f44336',
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#f44336',
   },
   approveBtn: {
-    backgroundColor: '#4caf50',
+    backgroundColor: '#e8f5e8',
+    borderWidth: 1,
+    borderColor: '#4caf50',
   },
   actionBtnText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },

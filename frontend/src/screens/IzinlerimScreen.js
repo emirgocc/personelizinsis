@@ -145,7 +145,7 @@ export default function IzinlerimScreen() {
             </View>
           </View>
         </View>
-        {index < izinler.length - 1 && <View style={styles.separator} />}
+        <View style={styles.separator} />
       </View>
     );
   };
