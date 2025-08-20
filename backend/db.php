@@ -15,7 +15,12 @@ function verifyToken($db, $token) {
     $user_id = $parts[0];
     $email = $parts[1];
     $role = $parts[2];
-    $user = $db->query("SELECT * FROM users WHERE id=".intval($user_id)." AND email='".$email."' AND role='".$role."'")->fetch(PDO::FETCH_ASSOC);
+    
+    // SQL injection koruması için prepared statement kullan
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ? AND email = ? AND role = ?");
+    $stmt->execute([intval($user_id), $email, $role]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
     return $user ?: false;
 }
 function getInput() {

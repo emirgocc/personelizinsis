@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-
-const API_URL = 'http://192.168.1.105:8000';
+import { getBackendUrl, API } from '../config/config';
 
 export default function IzinlerimScreen() {
   const { user } = useAuth();
@@ -15,7 +14,7 @@ export default function IzinlerimScreen() {
   const fetchIzinler = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/leaves/mine`, {
+      const res = await axios.get(getBackendUrl(API.LEAVES.MINE), {
         headers: { Authorization: user.token },
       });
       setIzinler(res.data);

@@ -3,6 +3,7 @@ import { View, Text, Image, ActivityIndicator, Alert, StyleSheet, TouchableOpaci
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { getBackendUrl, API } from '../config/config';
 
 export default function ProfilScreen() {
   const { user, logout } = useAuth();
@@ -13,7 +14,7 @@ export default function ProfilScreen() {
     if (!user?.token) return;
     setLoading(true);
     axios
-      .get('http://192.168.1.105:8000/me', {
+      .get(getBackendUrl(API.ME), {
         headers: { Authorization: user.token },
       })
       .then((res) => setProfile(res.data))

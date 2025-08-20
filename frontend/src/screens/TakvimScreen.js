@@ -7,9 +7,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import InfoPanel from '../components/InfoPanel';
 import ActionButtons from '../components/ActionButtons';
 import CalendarPanel from '../components/CalendarPanel';
+import { getBackendUrl, API } from '../config/config';
 // DateTimePicker importunu kaldırıyoruz
 
-const API_URL = 'http://192.168.1.105:8000';
 const { height } = Dimensions.get('window');
 
 export default function TakvimScreen() {
@@ -43,7 +43,7 @@ export default function TakvimScreen() {
     if (!force && monthCache[monthStr]) return; // cache varsa tekrar çekme
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/leaves/month?month=${monthStr}`, {
+      const res = await axios.get(getBackendUrl(`${API.LEAVES.MONTH}?month=${monthStr}`), {
         headers: { Authorization: user.token },
       });
       setMonthCache(prev => {
@@ -203,7 +203,7 @@ export default function TakvimScreen() {
     setLoading(true);
     setConfirmVisible(false);
     try {
-      await axios.post(`${API_URL}/leaves/create`, {
+      await axios.post(getBackendUrl(API.LEAVES.CREATE), {
         start_date: pendingRange.start,
         end_date: pendingRange.end || pendingRange.start,
       }, {

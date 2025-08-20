@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { getBackendUrl, API } from '../config/config';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -10,16 +11,40 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Hata', 'E-posta ve şifre alanları boş bırakılamaz');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await axios.post('http://192.168.1.105:8000/login', { email, password });
+      console.log('Giriş denemesi:', { email, password });
+      const res = await axios.post(getBackendUrl(API.LOGIN), { email, password });
+      console.log('Giriş başarılı:', res.data);
       login({
         email: res.data.email,
         role: res.data.role,
         token: res.data.token,
       });
     } catch (err) {
-      Alert.alert('Hata', err?.response?.data?.error || 'Giriş başarısız');
+      console.error('Giriş hatası:', err);
+      let errorMessage = 'Giriş başarısız';
+      
+      if (err.response) {
+        // Sunucudan hata yanıtı geldi
+        errorMessage = err.response.data.error || 'Sunucu hatası';
+        console.log('Sunucu hatası:', err.response.data);
+      } else if (err.request) {
+        // İstek yapıldı ama yanıt alınamadı
+        errorMessage = 'Sunucuya bağlanılamadı. Backend çalışıyor mu?';
+        console.log('Bağlantı hatası:', err.request);
+      } else {
+        // Diğer hatalar
+        errorMessage = err.message || 'Bilinmeyen hata';
+        console.log('Diğer hata:', err.message);
+      }
+      
+      Alert.alert('Giriş Hatası', errorMessage);
     } finally {
       setLoading(false);
     }
