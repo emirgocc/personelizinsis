@@ -1,40 +1,112 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 export default function InfoPanel({ startDate, endDate, visibleMonth, monthCache, limit, getDateRange }) {
   if (!startDate) {
     return (
-      <View style={{
-        backgroundColor: '#f7fafd', borderRadius: 14, paddingVertical: 16, paddingHorizontal: 18, minWidth: 320, width: '92%', borderWidth: 1.2, borderColor: '#e0e0e0', marginBottom: 8, alignItems: 'flex-start', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-        <Text style={{ fontSize: 16, color: '#111', fontWeight: '500', textAlign: 'left', marginBottom: 6 }}>Seçili Tarih: -</Text>
-        <Text style={{ fontSize: 15, color: '#111', fontWeight: '400', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>-</Text>
+      <View style={styles.container}>
+        <Text style={styles.title}>Seçili Tarih</Text>
+        <Text style={styles.subtitle}>Henüz tarih seçilmedi</Text>
       </View>
     );
   }
+  
   let days = [startDate];
   if (endDate) days = getDateRange(startDate, endDate);
   const monthStr = visibleMonth;
   const monthDays = monthCache[monthStr] || {};
   const doluGunler = days.filter(d => (monthDays[d] || 0) >= limit);
+  
   const formatDate = d => {
     const [y, m, g] = d.split('-');
     return `${g}/${m}/${y}`;
   };
+  
   return (
-    <View style={{
-      backgroundColor: '#f7fafd', borderRadius: 14, paddingVertical: 16, paddingHorizontal: 18, minWidth: 320, width: '92%', borderWidth: 1.2, borderColor: '#e0e0e0', marginBottom: 8, alignItems: 'flex-start', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-      <Text style={{ fontSize: 16, color: '#111', fontWeight: '500', textAlign: 'left', marginBottom: 6 }}>
-        {days.length === 1 ? `Seçili Tarih: ${formatDate(days[0])}` : `Seçili Tarihler: ${formatDate(days[0])} - ${formatDate(days[days.length - 1])}`}
+    <View style={styles.container}>
+      <Text style={styles.title}>
+        {days.length === 1 ? `Seçili Tarih` : `Seçili Tarihler`}
       </Text>
-      {doluGunler.length > 0 ? (
-        <Text style={{ fontSize: 15, color: '#e53935', fontWeight: 'bold', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>
-          {`Uygun olmayan günler: ${doluGunler.map(formatDate).join(', ')}`}
-        </Text>
-      ) : (
-        <Text style={{ fontSize: 15, color: '#111', fontWeight: '400', textAlign: 'left', marginTop: 2, letterSpacing: 0.1 }}>
-          Müsait
-        </Text>
-      )}
+      <Text style={styles.dateText}>
+        {days.length === 1 ? formatDate(days[0]) : `${formatDate(days[0])} - ${formatDate(days[days.length - 1])}`}
+      </Text>
+      
+      <View style={styles.statusContainer}>
+        {doluGunler.length > 0 ? (
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, styles.statusDotError]} />
+            <Text style={styles.statusTextError}>
+              {`${doluGunler.length} gün uygun değil`}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, styles.statusDotSuccess]} />
+            <Text style={styles.statusTextSuccess}>
+              Müsait
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#888',
+    fontWeight: '400',
+    textAlign: 'center',
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#888',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  statusContainer: {
+    marginTop: 0,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusDotSuccess: {
+    backgroundColor: '#4caf50',
+  },
+  statusDotError: {
+    backgroundColor: '#e53935',
+  },
+  statusTextSuccess: {
+    fontSize: 16,
+    color: '#4caf50',
+    fontWeight: '600',
+  },
+  statusTextError: {
+    fontSize: 16,
+    color: '#e53935',
+    fontWeight: '600',
+  },
+});

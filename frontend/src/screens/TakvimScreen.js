@@ -78,7 +78,7 @@ export default function TakvimScreen() {
       if (days[dateStr] >= limit) bg = 'rgba(229,57,53,0.2)'; // şeffaf kırmızı
       else if (days[dateStr] === limit - 1) bg = 'rgba(251,192,45,0.2)'; // şeffaf sarı
       if (isSelected) {
-        border = '#1976d2';
+        border = '#888';
         textColor = '#111';
         fontWeight = 'bold';
         if (days[dateStr] >= limit) bg = 'rgba(229,57,53,0.2)';
@@ -112,7 +112,7 @@ export default function TakvimScreen() {
             container: {
               borderRadius: 6,
               borderWidth: 2,
-              borderColor: '#1976d2',
+              borderColor: '#888',
             },
             text: isPast
               ? { color: '#bdbdbd', fontWeight: 'normal', textAlignVertical: 'center' }
@@ -233,21 +233,28 @@ export default function TakvimScreen() {
           }
           contentContainerStyle={{ flexGrow: 1 }}
         >
-          <CalendarPanel
-            currentDate={currentDate}
-            markedDates={markedDates}
-            handleDayPress={handleDayPress}
-            handleMonthChange={handleMonthChange}
-          />
-          <View style={{ alignItems: 'center', marginTop: 16 }}>
-            <InfoPanel
-              startDate={startDate}
-              endDate={endDate}
-              visibleMonth={visibleMonth}
-              monthCache={monthCache}
-              limit={limit}
-              getDateRange={getDateRange}
+          {/* Üst arka plan - profil ekranındaki gibi */}
+          <View style={styles.topBg}>
+            <CalendarPanel
+              currentDate={currentDate}
+              markedDates={markedDates}
+              handleDayPress={handleDayPress}
+              handleMonthChange={handleMonthChange}
             />
+          </View>
+          
+          {/* Profil ekranındaki gibi beyaz panel tasarımı */}
+          <View style={styles.whiteSection}>
+            <View style={styles.infoSection}>
+              <InfoPanel
+                startDate={startDate}
+                endDate={endDate}
+                visibleMonth={visibleMonth}
+                monthCache={monthCache}
+                limit={limit}
+                getDateRange={getDateRange}
+              />
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -286,3 +293,32 @@ export default function TakvimScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  topBg: {
+    backgroundColor: '#f5f7fa',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingBottom: 16,
+  },
+  whiteSection: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: 0,
+    paddingTop: 32,
+    flex: 1,
+    minHeight: 250,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  infoSection: {
+    marginTop: -20,
+    marginBottom: 24,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+  },
+});

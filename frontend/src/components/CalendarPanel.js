@@ -11,13 +11,20 @@ export default function CalendarPanel({ currentDate, markedDates, handleDayPress
       minDate={new Date().toISOString().slice(0, 10)}
       onMonthChange={handleMonthChange}
       theme={{
-        calendarBackground: '#f5f7fa',
-        todayTextColor: '#1976d2',
+        calendarBackground: 'transparent',
+        todayTextColor: '#888',
         dayTextColor: '#222',
         textDisabledColor: '#bdbdbd',
-        arrowColor: '#1976d2',
+        arrowColor: '#888',
+        monthTextColor: '#111',
+        textMonthFontSize: 18,
+        textMonthFontWeight: 'bold',
+        textDayHeaderFontSize: 14,
+        textDayHeaderFontWeight: '500',
+        textDayFontSize: 16,
+        textDayFontWeight: '400',
       }}
-      style={{ margin: 8, borderRadius: 16, overflow: 'hidden', elevation: 2 }}
+      style={{ margin: 16, marginTop: 24 }}
     />
   );
 }
