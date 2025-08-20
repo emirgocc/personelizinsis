@@ -58,7 +58,7 @@ export default function ProfilScreen() {
         <View style={styles.infoSection}>
           <Text style={styles.name}>{profile.first_name || ''} {profile.last_name || ''}</Text>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Phone</Text>
+            <Text style={styles.infoLabel}>Telefon</Text>
             <View style={{ flex: 1 }} />
             <Text style={styles.infoValue}>{profile.phone || '-'}</Text>
           </View>
@@ -72,7 +72,7 @@ export default function ProfilScreen() {
         <View style={styles.logoutBorder} />
         <TouchableOpacity style={styles.menuItem} onPress={logout}>
           <MaterialIcons name="logout" size={22} color="#d32f2f" style={{ marginRight: 16 }} />
-          <Text style={[styles.menuText, { color: '#d32f2f' }]}>Log out</Text>
+          <Text style={[styles.menuText, { color: '#d32f2f' }]}>Çıkış Yap</Text>
         </TouchableOpacity>
         <View style={styles.logoutBorder} />
       </View>

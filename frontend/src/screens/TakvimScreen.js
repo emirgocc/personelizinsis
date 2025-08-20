@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   infoSection: {
-    marginTop: -20,
+    marginTop: -40,
     marginBottom: 24,
     paddingHorizontal: 0,
     alignItems: 'center',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl, API } from '../config/config';
@@ -36,46 +36,188 @@ export default function IzinlerimScreen() {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#1976d2" /></View>;
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#888" />
+      </View>
+    );
   }
+  
   if (error) {
-    return <View style={styles.center}><Text>{error}</Text></View>;
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
   }
+  
   if (!izinler.length) {
-    return <View style={styles.center}><Text>Henüz izin talebiniz yok.</Text></View>;
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyText}>Henüz izin talebiniz yok.</Text>
+      </View>
+    );
   }
 
-  return (
-    <FlatList
-      data={izinler}
-      keyExtractor={item => item.id?.toString() + item.start_date}
-      contentContainerStyle={{ padding: 16 }}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <Text style={styles.date}>{item.start_date} - {item.end_date}</Text>
-          <Text style={styles.status}>{item.status}</Text>
-        </View>
-      )}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  const renderIzinItem = ({ item, index }) => {
+    const formatDate = d => {
+      const [y, m, g] = d.split('-');
+      return `${g}/${m}/${y}`;
+    };
+
+    const getStatusText = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'beklemede':
+          return 'Cevap Bekliyor';
+        case 'onaylı':
+          return 'Onaylandı';
+        case 'rejected':
+          return 'Reddedildi';
+        case 'cancelled':
+          return 'İptal Edildi';
+        case 'completed':
+          return 'Tamamlandı';
+        case 'in_progress':
+          return 'İşlemde';
+        default:
+          return status || 'Bilinmiyor';
       }
-    />
+    };
+
+    return (
+      <View>
+        <View style={styles.izinItem}>
+          <View style={styles.izinContent}>
+            <Text style={styles.dateText}>
+              {item.start_date === item.end_date 
+                ? formatDate(item.start_date)
+                : `${formatDate(item.start_date)} - ${formatDate(item.end_date)}`
+              }
+            </Text>
+            <Text style={styles.statusText}>
+              {getStatusText(item.status)}
+            </Text>
+          </View>
+        </View>
+        {index < izinler.length - 1 && <View style={styles.separator} />}
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {/* Üst arka plan - profil ekranındaki gibi */}
+        <View style={styles.topBg}>
+          <View style={styles.headerSection}>
+            <Text style={styles.headerSubtitle}>{izinler.length} izin talebi</Text>
+          </View>
+        </View>
+        
+        {/* Profil ekranındaki gibi beyaz panel tasarımı */}
+        <View style={styles.whiteSection}>
+          <View style={styles.izinlerSection}>
+            <FlatList
+              data={izinler}
+              keyExtractor={item => item.id?.toString() + item.start_date}
+              renderItem={renderIzinItem}
+              scrollEnabled={false}
+              contentContainerStyle={{ paddingTop: 8 }}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f7fa',
   },
-  date: { fontSize: 16, fontWeight: 'bold', color: '#1976d2' },
-  status: { fontSize: 15, marginTop: 4, color: '#222' },
+  errorText: {
+    fontSize: 16,
+    color: '#e53935',
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+  },
+  topBg: {
+    backgroundColor: '#f5f7fa',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingBottom: 16,
+  },
+  headerSection: {
+    paddingTop: 40,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#888',
+    fontWeight: '400',
+    textAlign: 'center',
+  },
+  whiteSection: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: 0,
+    paddingTop: 24,
+    flex: 1,
+    minHeight: 300,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  izinlerSection: {
+    paddingHorizontal: 0,
+  },
+  izinItem: {
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    backgroundColor: '#fff',
+  },
+  izinContent: {
+    alignItems: 'flex-start',
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#888',
+    marginBottom: 6,
+    textAlign: 'left',
+  },
+  statusText: {
+    fontSize: 15,
+    color: '#111',
+    fontWeight: '500',
+    textAlign: 'left',
+  },
+  separator: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#e0e0e0',
+    marginHorizontal: 16,
+  },
 });

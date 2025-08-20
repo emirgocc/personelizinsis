@@ -47,7 +47,22 @@ function EkipAyarScreen() {
 
 function PersonelTabs() {
   return (
-    <Tab.Navigator initialRouteName="Takvim">
+    <Tab.Navigator 
+      initialRouteName="Takvim"
+      screenOptions={{
+        tabBarStyle: { 
+          elevation: 0, 
+          shadowOpacity: 0,
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+        },
+        tabBarActiveTintColor: '#1976d2',
+        tabBarInactiveTintColor: '#888',
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
+        tabBarIconStyle: { marginBottom: 2 },
+      }}
+    >
       <Tab.Screen 
         name="Takvim" 
         component={TakvimScreen} 
@@ -80,7 +95,22 @@ function PersonelTabs() {
 }
 function AmirTabs() {
   return (
-    <Tab.Navigator initialRouteName="BekleyenOnaylar">
+    <Tab.Navigator 
+      initialRouteName="BekleyenOnaylar"
+      screenOptions={{
+        tabBarStyle: { 
+          elevation: 0, 
+          shadowOpacity: 0,
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+        },
+        tabBarActiveTintColor: '#1976d2',
+        tabBarInactiveTintColor: '#888',
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
+        tabBarIconStyle: { marginBottom: 2 },
+      }}
+    >
       <Tab.Screen 
         name="Bekleyen Onaylar" 
         component={BekleyenOnaylarScreen} 

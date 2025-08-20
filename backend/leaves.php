@@ -9,33 +9,37 @@ function handleCreateLeave($db, $user) {
     $team_id = $user['team_id'];
     $team = $db->query("SELECT * FROM teams WHERE id=$team_id")->fetch(PDO::FETCH_ASSOC);
     $max = $team['max_leave_count'];
-    // Tarih aralığı oluştur
-    $dates = [];
-    if ($start && $end && $start !== $end) {
-        $dt = strtotime($start);
-        $endDt = strtotime($end);
-        while ($dt <= $endDt) {
-            $dates[] = date('Y-m-d', $dt);
-            $dt = strtotime('+1 day', $dt);
-        }
-    } else if ($start) {
-        $dates[] = $start;
+    
+    // Eğer end_date yoksa start_date ile aynı yap
+    if (!$end) {
+        $end = $start;
     }
+    
+    // Tarih aralığı oluştur (doluluk kontrolü için)
+    $dates = [];
+    $dt = strtotime($start);
+    $endDt = strtotime($end);
+    while ($dt <= $endDt) {
+        $dates[] = date('Y-m-d', $dt);
+        $dt = strtotime('+1 day', $dt);
+    }
+    
     // Her gün için doluluk kontrolü
     $doluGunler = [];
     foreach ($dates as $d) {
-        $count = $db->query("SELECT COUNT(*) FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date='$d' AND l.status IN ('onaylı','beklemede') AND u.team_id=$team_id")->fetchColumn();
+        $count = $db->query("SELECT COUNT(*) FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date <= '$d' AND l.end_date >= '$d' AND l.status IN ('onaylı','beklemede') AND u.team_id=$team_id")->fetchColumn();
         if ($count >= $max) {
             $doluGunler[] = $d;
         }
     }
+    
     if (count($doluGunler) > 0) {
         response(["error"=>"Bazı günlerde izin hakkı dolmuştur.", "full_days"=>$doluGunler], 400);
     }
-    // Her gün için izin kaydı oluştur
-    foreach ($dates as $d) {
-        $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status) VALUES (".$user['id'].", '$d', '$d', '$status')");
-    }
+    
+    // Tek bir izin kaydı oluştur (tarih aralığı ile)
+    $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status) VALUES (".$user['id'].", '$start', '$end', '$status')");
+    
     response(["success"=>true]);
 }
 
