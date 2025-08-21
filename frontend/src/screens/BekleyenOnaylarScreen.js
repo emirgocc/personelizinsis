@@ -17,7 +17,26 @@ export default function BekleyenOnaylarScreen() {
       const res = await axios.get(getBackendUrl(API.LEAVES.PENDING), {
         headers: { Authorization: user.token },
       });
-      setPendingLeaves(res.data.map(leave => ({ ...leave, isExpanded: false })));
+      
+      // Admin için takım bilgisi ekle
+      if (user.role === 'admin') {
+        const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
+          headers: { Authorization: user.token },
+        });
+        const teams = teamsRes.data;
+        
+        const leavesWithTeam = res.data.map(leave => {
+          const userTeam = teams.find(team => team.id === leave.team_id);
+          return { 
+            ...leave, 
+            isExpanded: false,
+            team_name: userTeam?.name || 'Takım Yok'
+          };
+        });
+        setPendingLeaves(leavesWithTeam);
+      } else {
+        setPendingLeaves(res.data.map(leave => ({ ...leave, isExpanded: false })));
+      }
     } catch (e) {
       Alert.alert('Hata', 'Bekleyen izinler alınamadı.');
     }
@@ -84,6 +103,11 @@ export default function BekleyenOnaylarScreen() {
                     : formatDate(item.start_date)
                   }
                 </Text>
+                {user.role === 'admin' && (
+                  <Text style={styles.teamText}>
+                    {item.team_name || 'Takım Yok'}
+                  </Text>
+                )}
               </View>
             </View>
             <View style={styles.expandIcon}>
@@ -274,6 +298,11 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: '#888',
+  },
+  teamText: {
+    fontSize: 12,
+    color: '#1976d2',
+    marginTop: 2,
   },
   expandIcon: {
     paddingLeft: 16,

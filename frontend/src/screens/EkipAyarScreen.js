@@ -17,18 +17,32 @@ export default function EkipAyarScreen() {
   const fetchTeamInfo = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      // Takım bilgilerini al
-      const teamRes = await axios.get(getBackendUrl(API.TEAMS.INFO), {
-        headers: { Authorization: user.token },
-      });
-      setTeamInfo(teamRes.data);
-      setMaxLeaveCount(teamRes.data.max_leave_count?.toString() || '');
-      
-      // Takım üyelerini al
-      const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {
-        headers: { Authorization: user.token },
-      });
-      setTeamMembers(membersRes.data);
+      if (user.role === 'admin') {
+        // Admin tüm takımları görebilir
+        const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
+          headers: { Authorization: user.token },
+        });
+        setTeamInfo(teamsRes.data[0]); // İlk takımı varsayılan olarak seç
+        setMaxLeaveCount(teamsRes.data[0]?.max_leave_count?.toString() || '');
+        
+        // Tüm personelleri al
+        const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {
+          headers: { Authorization: user.token },
+        });
+        setTeamMembers(membersRes.data);
+      } else {
+        // Normal kullanıcı sadece kendi takımını görebilir
+        const teamRes = await axios.get(getBackendUrl(API.TEAMS.INFO), {
+          headers: { Authorization: user.token },
+        });
+        setTeamInfo(teamRes.data);
+        setMaxLeaveCount(teamRes.data.max_leave_count?.toString() || '');
+        
+        const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {
+          headers: { Authorization: user.token },
+        });
+        setTeamMembers(membersRes.data);
+      }
     } catch (e) {
       Alert.alert('Hata', 'Takım bilgileri alınamadı.');
     }
@@ -49,6 +63,7 @@ export default function EkipAyarScreen() {
     try {
       await axios.post(getBackendUrl(API.TEAMS.UPDATE), {
         max_leave_count: parseInt(maxLeaveCount),
+        team_id: teamInfo?.id,
       }, {
         headers: { Authorization: user.token },
       });
@@ -62,6 +77,12 @@ export default function EkipAyarScreen() {
   };
 
   const renderMemberItem = ({ item, index }) => {
+    const formatHireDate = (dateStr) => {
+      if (!dateStr) return 'Belirtilmemiş';
+      const [y, m, g] = dateStr.split('-');
+      return `${g}/${m}/${y}`;
+    };
+
     return (
       <View>
         <View style={styles.memberItem}>
@@ -74,11 +95,21 @@ export default function EkipAyarScreen() {
                 {item.first_name || ''} {item.last_name || ''}
               </Text>
               <Text style={styles.memberEmail}>{item.email}</Text>
+              {user.role === 'admin' && (
+                <Text style={styles.memberTeam}>
+                  {item.team_name || 'Takım Yok'}
+                </Text>
+              )}
             </View>
             <View style={styles.memberRole}>
               <Text style={styles.roleText}>
                 {item.role === 'admin' ? 'Amir' : 'Personel'}
               </Text>
+              {user.role === 'admin' && (
+                <Text style={styles.leaveDays}>
+                  {item.annual_leave_days || 20} gün
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -107,68 +138,74 @@ export default function EkipAyarScreen() {
         <View style={styles.topBg}>
           <View style={styles.headerSection}>
             <Text style={styles.headerTitle}>Ekip Ayarları</Text>
-            <Text style={styles.headerSubtitle}>{teamMembers.length} üye</Text>
+            <Text style={styles.headerSubtitle}>
+              {user.role === 'admin' ? 'Tüm Personeller' : `${teamMembers.length} üye`}
+            </Text>
           </View>
         </View>
         
         {/* Profil ekranındaki gibi beyaz panel tasarımı */}
         <View style={styles.whiteSection}>
           {/* Takım Ayarları */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>Takım Ayarları</Text>
-            
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Maksimum İzin Sayısı</Text>
-              <View style={styles.settingInput}>
+          {user.role !== 'admin' && (
+            <View style={styles.settingsSection}>
+              <Text style={styles.sectionTitle}>Takım Ayarları</Text>
+              
+              <View style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Maksimum İzin Sayısı</Text>
+                <View style={styles.settingInput}>
+                  {editing ? (
+                    <TextInput
+                      style={styles.input}
+                      value={maxLeaveCount}
+                      onChangeText={setMaxLeaveCount}
+                      keyboardType="numeric"
+                      placeholder="Örn: 2"
+                    />
+                  ) : (
+                    <Text style={styles.settingValue}>{teamInfo?.max_leave_count || 0}</Text>
+                  )}
+                </View>
+              </View>
+              
+              <View style={styles.settingActions}>
                 {editing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={maxLeaveCount}
-                    onChangeText={setMaxLeaveCount}
-                    keyboardType="numeric"
-                    placeholder="Örn: 2"
-                  />
+                  <>
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, styles.cancelBtn]} 
+                      onPress={() => {
+                        setEditing(false);
+                        setMaxLeaveCount(teamInfo?.max_leave_count?.toString() || '');
+                      }}
+                    >
+                      <Text style={styles.cancelBtnText}>İptal</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, styles.saveBtn]} 
+                      onPress={handleSaveTeamSettings}
+                    >
+                      <Text style={styles.saveBtnText}>Kaydet</Text>
+                    </TouchableOpacity>
+                  </>
                 ) : (
-                  <Text style={styles.settingValue}>{teamInfo?.max_leave_count || 0}</Text>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, styles.editBtn]} 
+                    onPress={() => setEditing(true)}
+                  >
+                    <MaterialIcons name="edit" size={18} color="#1976d2" />
+                    <Text style={styles.editBtnText}>Düzenle</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             </View>
-            
-            <View style={styles.settingActions}>
-              {editing ? (
-                <>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.cancelBtn]} 
-                    onPress={() => {
-                      setEditing(false);
-                      setMaxLeaveCount(teamInfo?.max_leave_count?.toString() || '');
-                    }}
-                  >
-                    <Text style={styles.cancelBtnText}>İptal</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.saveBtn]} 
-                    onPress={handleSaveTeamSettings}
-                  >
-                    <Text style={styles.saveBtnText}>Kaydet</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity 
-                  style={[styles.actionBtn, styles.editBtn]} 
-                  onPress={() => setEditing(true)}
-                >
-                  <MaterialIcons name="edit" size={18} color="#1976d2" />
-                  <Text style={styles.editBtnText}>Düzenle</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          )}
           
           {/* Takım Üyeleri */}
           <View style={styles.membersSection}>
-            <Text style={styles.sectionTitle}>Takım Üyeleri</Text>
+            <Text style={styles.sectionTitle}>
+              {user.role === 'admin' ? 'Tüm Personeller' : 'Takım Üyeleri'}
+            </Text>
             
             <FlatList
               data={teamMembers}
@@ -357,6 +394,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     fontWeight: '500',
+    marginBottom: 4,
+  },
+  leaveDays: {
+    fontSize: 11,
+    color: '#4caf50',
+    backgroundColor: '#e8f5e8',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontWeight: '500',
+  },
+  memberTeam: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   separator: {
     borderBottomWidth: 1.5,

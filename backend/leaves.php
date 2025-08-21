@@ -24,6 +24,21 @@ function handleCreateLeave($db, $user) {
         $dt = strtotime('+1 day', $dt);
     }
     
+    // Yıllık izin günleri kontrolü
+    $currentYear = date('Y');
+    $userInfo = $db->query("SELECT annual_leave_days FROM users WHERE id=".$user['id'])->fetch(PDO::FETCH_ASSOC);
+    $annualLimit = $userInfo['annual_leave_days'] ?? 20;
+    
+    // Bu yıl kullanılan izin günleri
+    $usedDays = $db->query("SELECT COUNT(*) FROM leaves WHERE user_id=".$user['id']." AND start_date >= '$currentYear-01-01' AND start_date <= '$currentYear-12-31' AND status IN ('onaylı','beklemede')")->fetchColumn();
+    
+    // Talep edilen gün sayısı
+    $requestedDays = count($dates);
+    
+    if (($usedDays + $requestedDays) > $annualLimit) {
+        response(["error"=>"Yıllık izin günleri aşılıyor. Kalan: " . ($annualLimit - $usedDays) . " gün"], 400);
+    }
+    
     // Her gün için doluluk kontrolü
     $doluGunler = [];
     foreach ($dates as $d) {
@@ -38,7 +53,7 @@ function handleCreateLeave($db, $user) {
     }
     
     // Tek bir izin kaydı oluştur (tarih aralığı ile)
-    $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status) VALUES (".$user['id'].", '$start', '$end', '$status')");
+    $db->exec("INSERT INTO leaves (user_id, start_date, end_date, status, leave_type) VALUES (".$user['id'].", '$start', '$end', '$status', 'yıllık')");
     
     response(["success"=>true]);
 }
@@ -86,7 +101,7 @@ function handleLeavesMonth($db, $user) {
 
 function handleLeavesPending($db, $user) {
     if ($user['role'] != 'admin') response(["error"=>"Yetki yok."], 403);
-    $pending = $db->query("SELECT l.id, u.email, u.first_name, u.last_name, l.start_date, l.end_date, l.status FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.status='beklemede' ORDER BY l.start_date")->fetchAll(PDO::FETCH_ASSOC);
+    $pending = $db->query("SELECT l.id, u.email, u.first_name, u.last_name, l.start_date, l.end_date, l.status, u.team_id FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.status='beklemede' ORDER BY l.start_date")->fetchAll(PDO::FETCH_ASSOC);
     response($pending);
 }
 

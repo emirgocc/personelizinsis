@@ -36,7 +36,7 @@ if ($path == '/login' && $method == 'POST') {
 }
 
 // --- Auth gerektiren endpointler ---
-$protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update','/teams/info','/teams/members'];
+$protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update','/teams/info','/teams/members','/teams/all','/teams/members-by-team'];
 if (in_array($path, $protected)) {
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $token = $headers['authorization'] ?? '';
@@ -80,6 +80,14 @@ if ($path == '/teams/info' && $method == 'GET') {
 // --- /teams/members ---
 if ($path == '/teams/members' && $method == 'GET') {
     handleTeamMembers($db, $user);
+}
+// --- /teams/all ---
+if ($path == '/teams/all' && $method == 'GET') {
+    handleAllTeams($db, $user);
+}
+// --- /teams/members-by-team ---
+if ($path == '/teams/members-by-team' && $method == 'GET') {
+    handleTeamMembersByTeam($db, $user);
 }
 // --- /me ---
 if ($path == '/me' && $method == 'GET') {
