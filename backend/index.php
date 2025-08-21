@@ -36,7 +36,7 @@ if ($path == '/login' && $method == 'POST') {
 }
 
 // --- Auth gerektiren endpointler ---
-$protected = ['/leaves/create','/leaves/mine','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update','/teams/info','/teams/members','/teams/all','/teams/members-by-team'];
+$protected = ['/leaves/create','/leaves/mine','/leaves/remaining','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/update','/teams/info','/teams/members','/teams/all','/teams/members-by-team'];
 if (in_array($path, $protected)) {
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $token = $headers['authorization'] ?? '';
@@ -52,6 +52,10 @@ if ($path == '/leaves/create' && $method == 'POST') {
 // --- /leaves/mine ---
 if ($path == '/leaves/mine' && $method == 'GET') {
     handleMyLeaves($db, $user);
+}
+// --- /leaves/remaining ---
+if ($path == '/leaves/remaining' && $method == 'GET') {
+    handleRemainingLeaveDays($db, $user);
 }
 // --- /leaves/day ---
 if ($path == '/leaves/day' && $method == 'GET') {

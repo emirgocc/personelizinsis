@@ -20,6 +20,7 @@ export const CONFIG = {
     LEAVES: {
       CREATE: '/leaves/create',
       MINE: '/leaves/mine',
+      REMAINING: '/leaves/remaining',
       DAY: '/leaves/day',
       MONTH: '/leaves/month',
       PENDING: '/leaves/pending',

@@ -118,3 +118,22 @@ function handleLeavesApprove($db, $user) {
     $db->exec("UPDATE leaves SET status='$status' WHERE id=$leave_id");
     response(["success"=>true]);
 }
+
+function handleRemainingLeaveDays($db, $user) {
+    // Kullanıcının yıllık izin günü limiti
+    $userInfo = $db->query("SELECT annual_leave_days FROM users WHERE id=".$user['id'])->fetch(PDO::FETCH_ASSOC);
+    $annualLimit = $userInfo['annual_leave_days'] ?? 20;
+    
+    // Bu yıl kullanılan izin günleri (sadece onaylı)
+    $currentYear = date('Y');
+    $usedDays = $db->query("SELECT COUNT(*) FROM leaves WHERE user_id=".$user['id']." AND start_date >= '$currentYear-01-01' AND start_date <= '$currentYear-12-31' AND status = 'onaylı'")->fetchColumn();
+    
+    // Kalan izin günleri
+    $remainingDays = $annualLimit - $usedDays;
+    
+    response([
+        "annual_limit" => $annualLimit,
+        "used_days" => $usedDays,
+        "remaining_days" => $remainingDays
+    ]);
+}

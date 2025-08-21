@@ -11,6 +11,7 @@ export default function IzinlerimScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [remainingDays, setRemainingDays] = useState(null);
 
   const fetchIzinler = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -27,13 +28,33 @@ export default function IzinlerimScreen() {
     setRefreshing(false);
   };
 
+  const fetchRemainingDays = async () => {
+    try {
+      const res = await axios.get(getBackendUrl(API.LEAVES.REMAINING), {
+        headers: { Authorization: user.token },
+      });
+      console.log('Remaining days response:', res.data);
+      setRemainingDays(res.data);
+    } catch (e) {
+      console.log('Kalan izin günleri alınamadı:', e);
+      // Varsayılan değer olarak 20 gün göster
+      setRemainingDays({
+        annual_limit: 20,
+        used_days: 0,
+        remaining_days: 20
+      });
+    }
+  };
+
   useEffect(() => {
     fetchIzinler();
+    fetchRemainingDays();
   }, [user.token]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchIzinler(false);
+    fetchRemainingDays();
   };
 
   if (loading) {
@@ -161,6 +182,9 @@ export default function IzinlerimScreen() {
         {/* Üst arka plan - profil ekranındaki gibi */}
         <View style={styles.topBg}>
           <View style={styles.headerSection}>
+            <Text style={styles.headerSubtitle}>
+              {remainingDays ? remainingDays.remaining_days : 20} kalan izin günü
+            </Text>
             <Text style={styles.headerSubtitle}>{izinler.length} izin talebi</Text>
           </View>
         </View>
@@ -222,13 +246,14 @@ const styles = StyleSheet.create({
     color: '#888',
     fontWeight: '400',
     textAlign: 'center',
+    marginBottom: 4,
   },
   whiteSection: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: 0,
-    paddingTop: 24,
+    paddingTop: 0,
     flex: 1,
     minHeight: 300,
     elevation: 2,
