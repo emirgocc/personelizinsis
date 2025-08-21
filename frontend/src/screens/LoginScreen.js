@@ -21,30 +21,34 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-      console.log('Giriş denemesi:', { email, password });
       const res = await axios.post(getBackendUrl(API.LOGIN), { email, password });
-      console.log('Giriş başarılı:', res.data);
+      console.log('Giriş başarılı:', res.data.email);
       login({
         email: res.data.email,
         role: res.data.role,
         token: res.data.token,
       });
     } catch (err) {
-      console.error('Giriş hatası:', err);
       let errorMessage = 'Giriş başarısız';
       
       if (err.response) {
-        // Sunucudan hata yanıtı geldi
-        errorMessage = err.response.data.error || 'Sunucu hatası';
-        console.log('Sunucu hatası:', err.response.data);
+        // Sunucudan hata yanıtı geldi (401, 400 gibi)
+        if (err.response.status === 401) {
+          errorMessage = 'Geçersiz e-posta veya şifre';
+          // 401 hatası için sadece bilgilendirici log
+          console.log('Giriş başarısız:', email);
+        } else {
+          errorMessage = err.response.data.error || 'Sunucu hatası';
+          console.log('Sunucu hatası:', err.response.data);
+        }
       } else if (err.request) {
         // İstek yapıldı ama yanıt alınamadı
         errorMessage = 'Sunucuya bağlanılamadı. Backend çalışıyor mu?';
-        console.log('Bağlantı hatası:', err.request);
+        console.log('Bağlantı hatası - backend erişilemez');
       } else {
         // Diğer hatalar
         errorMessage = err.message || 'Bilinmeyen hata';
-        console.log('Diğer hata:', err.message);
+        console.log('Bilinmeyen hata:', err.message);
       }
       
       Alert.alert('Giriş Hatası', errorMessage);
