@@ -66,7 +66,10 @@ function handleMyLeaves($db, $user) {
 function handleLeavesDay($db, $user) {
     $date = $_GET['date'] ?? '';
     $team_id = $user['team_id'];
-    $leaves = $db->query("SELECT u.email, l.status FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date='$date' AND u.team_id=$team_id")->fetchAll(PDO::FETCH_ASSOC);
+    
+    // O gün için izinli olan kişileri getir (onaylı ve beklemede)
+    $leaves = $db->query("SELECT u.id, u.email, u.first_name, u.last_name, l.status FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.start_date <= '$date' AND l.end_date >= '$date' AND u.team_id=$team_id AND l.status IN ('onaylı','beklemede') ORDER BY u.first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    
     response($leaves);
 }
 
