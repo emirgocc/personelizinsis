@@ -106,8 +106,11 @@ export default function EkipAyarScreen() {
                     <Text style={styles.memberEmail}>{member.email}</Text>
                   </View>
                   <View style={styles.leaveInfo}>
-                    <Text style={styles.leaveDays}>
-                      {member.remaining_leave_days || 0} gün
+                    <Text style={styles.leaveDaysNumber}>
+                      {member.remaining_leave_days || 0} kalan
+                    </Text>
+                    <Text style={styles.leaveDaysText}>
+                      izin günü
                     </Text>
                   </View>
                 </View>
@@ -196,6 +199,7 @@ const styles = StyleSheet.create({
   },
   leavesSection: {
     paddingHorizontal: 0,
+    
   },
   teamContainer: {
     marginBottom: 10,
@@ -288,9 +292,15 @@ const styles = StyleSheet.create({
   leaveInfo: {
     marginLeft: 10,
   },
-  leaveDays: {
+  leaveDaysNumber: {
     fontSize: 12,
     color: '#1976d2',
     fontWeight: '500',
+  },
+  leaveDaysText: {
+    fontSize: 12,
+    color: '#1976d2',
+    marginTop: 2,
+    fontWeight: '500'
   },
 });
