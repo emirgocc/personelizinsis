@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, RefreshControl, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -7,38 +7,36 @@ import { getBackendUrl, API } from '../config/config';
 
 export default function EkipAyarScreen() {
   const { user } = useAuth();
-  const [teamInfo, setTeamInfo] = useState(null);
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [maxLeaveCount, setMaxLeaveCount] = useState('');
+  const [expandedTeams, setExpandedTeams] = useState({});
 
   const fetchTeamInfo = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
       if (user.role === 'admin') {
-        // Admin için varsayılan takım bilgisi (1. ekip)
-        setTeamInfo({ id: 1, max_leave_count: 2 });
-        setMaxLeaveCount('2');
-        
-        // Tüm personelleri al
         const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {
           headers: { Authorization: user.token },
         });
-        setTeamMembers(membersRes.data);
+        
+        const groupedMembers = {};
+        membersRes.data.forEach(member => {
+          const teamName = member.team_name || 'Takım Yok';
+          if (!groupedMembers[teamName]) {
+            groupedMembers[teamName] = [];
+          }
+          groupedMembers[teamName].push(member);
+        });
+        
+        setTeamMembers(groupedMembers);
       } else {
-        // Normal kullanıcı sadece kendi takımını görebilir
-        const teamRes = await axios.get(getBackendUrl(API.TEAMS.INFO), {
-          headers: { Authorization: user.token },
-        });
-        setTeamInfo(teamRes.data);
-        setMaxLeaveCount(teamRes.data.max_leave_count?.toString() || '');
-        
         const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {
           headers: { Authorization: user.token },
         });
-        setTeamMembers(membersRes.data);
+        
+        const teamName = 'Takım';
+        setTeamMembers({ [teamName]: membersRes.data });
       }
     } catch (e) {
       Alert.alert('Hata', 'Takım bilgileri alınamadı.');
@@ -56,61 +54,67 @@ export default function EkipAyarScreen() {
     fetchTeamInfo(false);
   };
 
-  const handleSaveTeamSettings = async () => {
-    try {
-      await axios.post(getBackendUrl(API.TEAMS.UPDATE), {
-        max_leave_count: parseInt(maxLeaveCount),
-        team_id: teamInfo?.id,
-      }, {
-        headers: { Authorization: user.token },
-      });
-      
-      Alert.alert('Başarılı', 'Takım ayarları güncellendi.');
-      setEditing(false);
-      fetchTeamInfo(false);
-    } catch (e) {
-      Alert.alert('Hata', 'Ayarlar güncellenemedi.');
-    }
+  const toggleTeamExpansion = (teamName) => {
+    setExpandedTeams(prev => ({
+      ...prev,
+      [teamName]: !prev[teamName]
+    }));
   };
 
-  const renderMemberItem = ({ item, index }) => {
-    const formatHireDate = (dateStr) => {
-      if (!dateStr) return 'Belirtilmemiş';
-      const [y, m, g] = dateStr.split('-');
-      return `${g}/${m}/${y}`;
-    };
-
+  const renderTeamSection = (teamName, members) => {
+    const isExpanded = expandedTeams[teamName];
+    
     return (
-      <View>
-        <View style={styles.memberItem}>
-          <View style={styles.memberInfo}>
-            <View style={styles.avatarPlaceholder}>
-              <MaterialIcons name="person" size={24} color="#bdbdbd" />
+      <View style={styles.teamContainer}>
+        <TouchableOpacity 
+          style={styles.expandableHeader}
+          onPress={() => toggleTeamExpansion(teamName)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.teamHeaderContent}>
+            <View style={styles.teamIconContainer}>
+              <MaterialIcons name="people" size={20} color="#1976d2" />
             </View>
-            <View style={styles.memberDetails}>
-              <Text style={styles.memberName}>
-                {item.first_name || ''} {item.last_name || ''}
-              </Text>
-              <Text style={styles.memberEmail}>{item.email}</Text>
-              {user.role === 'admin' && (
-                <Text style={styles.memberTeam}>
-                  {item.team_name || 'Takım Yok'}
-                </Text>
-              )}
-            </View>
-            <View style={styles.memberRole}>
-              <Text style={styles.roleText}>
-                {item.role === 'admin' ? 'Amir' : 'Personel'}
-              </Text>
-              {user.role === 'admin' && (
-                <Text style={styles.leaveDays}>
-                  {item.annual_leave_days || 20} gün
-                </Text>
-              )}
+            <View style={styles.teamInfo}>
+              <Text style={styles.teamName}>{teamName}</Text>
+              <Text style={styles.teamMemberCount}>{members.length} üye</Text>
             </View>
           </View>
-        </View>
-        {index < teamMembers.length - 1 && <View style={styles.separator} />}
+          <MaterialIcons 
+            name={isExpanded ? 'expand-less' : 'expand-more'} 
+            size={24} 
+            color="#666"
+            style={styles.expandIcon}
+          />
+        </TouchableOpacity>
+        
+        {isExpanded && (
+          <View style={styles.expandableContent}>
+            <View style={styles.memberList}>
+              {members.map((member, index) => (
+                <View key={member.id} style={[
+                  styles.memberItem,
+                  index === members.length - 1 && { borderBottomWidth: 0 }
+                ]}>
+                  <View style={styles.memberAvatar}>
+                    <MaterialIcons name="person" size={16} color="#bdbdbd" />
+                  </View>
+                  <View style={styles.memberDetails}>
+                    <Text style={styles.memberName}>
+                      {member.first_name || ''} {member.last_name || ''}
+                    </Text>
+                    <Text style={styles.memberEmail}>{member.email}</Text>
+                  </View>
+                  <View style={styles.leaveInfo}>
+                    <Text style={styles.leaveDays}>
+                      {member.remaining_leave_days || 0} gün
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -131,86 +135,19 @@ export default function EkipAyarScreen() {
         }
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        {/* Üst arka plan - profil ekranındaki gibi */}
         <View style={styles.topBg}>
           <View style={styles.headerSection}>
-            <Text style={styles.headerTitle}>Ekip Ayarları</Text>
             <Text style={styles.headerSubtitle}>
-              {user.role === 'admin' ? 'Tüm Personeller' : `${teamMembers.length} üye`}
+              {user.role === 'admin' ? 'Tüm Personeller' : `${Object.values(teamMembers).flat().length} üye`}
             </Text>
           </View>
         </View>
         
-        {/* Profil ekranındaki gibi beyaz panel tasarımı */}
         <View style={styles.whiteSection}>
-          {/* Takım Ayarları */}
-          {user.role !== 'admin' && (
-            <View style={styles.settingsSection}>
-              <Text style={styles.sectionTitle}>Takım Ayarları</Text>
-              
-              <View style={styles.settingItem}>
-                <Text style={styles.settingLabel}>Maksimum İzin Sayısı</Text>
-                <View style={styles.settingInput}>
-                  {editing ? (
-                    <TextInput
-                      style={styles.input}
-                      value={maxLeaveCount}
-                      onChangeText={setMaxLeaveCount}
-                      keyboardType="numeric"
-                      placeholder="Örn: 2"
-                    />
-                  ) : (
-                    <Text style={styles.settingValue}>{teamInfo?.max_leave_count || 0}</Text>
-                  )}
-                </View>
-              </View>
-              
-              <View style={styles.settingActions}>
-                {editing ? (
-                  <>
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, styles.cancelBtn]} 
-                      onPress={() => {
-                        setEditing(false);
-                        setMaxLeaveCount(teamInfo?.max_leave_count?.toString() || '');
-                      }}
-                    >
-                      <Text style={styles.cancelBtnText}>İptal</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, styles.saveBtn]} 
-                      onPress={handleSaveTeamSettings}
-                    >
-                      <Text style={styles.saveBtnText}>Kaydet</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.editBtn]} 
-                    onPress={() => setEditing(true)}
-                  >
-                    <MaterialIcons name="edit" size={18} color="#1976d2" />
-                    <Text style={styles.editBtnText}>Düzenle</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-          
-          {/* Takım Üyeleri */}
-          <View style={styles.membersSection}>
-            <Text style={styles.sectionTitle}>
-              {user.role === 'admin' ? 'Tüm Personeller' : 'Takım Üyeleri'}
-            </Text>
-            
-            <FlatList
-              data={teamMembers}
-              keyExtractor={item => item.id?.toString()}
-              renderItem={renderMemberItem}
-              scrollEnabled={false}
-              contentContainerStyle={{ paddingTop: 8 }}
-            />
+          <View style={styles.leavesSection}>
+            {Object.entries(teamMembers).map(([teamName, members]) => 
+              renderTeamSection(teamName, members)
+            )}
           </View>
         </View>
       </ScrollView>
@@ -236,13 +173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   headerSubtitle: {
     fontSize: 16,
     color: '#888',
@@ -262,154 +192,105 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
   },
-  settingsSection: {
-    paddingHorizontal: 32,
-    marginBottom: 32,
-  },
-  membersSection: {
+  leavesSection: {
     paddingHorizontal: 0,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111',
-    marginBottom: 20,
+  teamContainer: {
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    overflow: 'hidden',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    alignSelf: 'center',
+    width: '88%',
   },
-  settingItem: {
+  expandableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 25,
+    backgroundColor: '#fff',
   },
-  settingLabel: {
-    fontSize: 16,
-    color: '#666',
-    flex: 1,
-  },
-  settingInput: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  settingValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
-  },
-  input: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
-    textAlign: 'right',
-    minWidth: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#f5f7fa',
-    borderRadius: 6,
-  },
-  settingActions: {
+  teamHeaderContent: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    flex: 1,
   },
-  actionBtn: {
+  teamIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#e0f2f7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  teamInfo: {
+    flex: 1,
+  },
+  teamName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111',
+  },
+  teamMemberCount: {
+    fontSize: 14,
+    color: '#888',
+  },
+  expandableContent: {
+    paddingTop: 5,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+  },
+  expandIcon: {
+    marginRight: 15,
+  },
+  memberList: {
+    // No specific styles for memberList, it's just a container for member items
+  },
+  memberItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eee',
   },
-  editBtn: {
-    backgroundColor: '#f5f7fa',
-    borderWidth: 1,
-    borderColor: '#1976d2',
-  },
-  editBtnText: {
-    color: '#1976d2',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cancelBtn: {
-    backgroundColor: '#f5f7fa',
-    borderWidth: 1,
-    borderColor: '#888',
-  },
-  cancelBtnText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  saveBtn: {
-    backgroundColor: '#1976d2',
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  memberItem: {
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    backgroundColor: '#fff',
-  },
-  memberInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  memberAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#f5f7fa',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   memberDetails: {
     flex: 1,
   },
   memberName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#333',
   },
   memberEmail: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#888',
-  },
-  memberRole: {
-    alignItems: 'flex-end',
-  },
-  roleText: {
-    fontSize: 12,
-    color: '#1976d2',
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  leaveDays: {
-    fontSize: 11,
-    color: '#4caf50',
-    backgroundColor: '#e8f5e8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    fontWeight: '500',
-  },
-  memberTeam: {
-    fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
-  separator: {
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#e0e0e0',
-    marginHorizontal: 16,
+  leaveInfo: {
+    marginLeft: 10,
+  },
+  leaveDays: {
+    fontSize: 12,
+    color: '#1976d2',
+    fontWeight: '500',
   },
 });

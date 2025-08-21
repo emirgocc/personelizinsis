@@ -109,7 +109,7 @@ function AmirTabs() {
         }}
       />
       <Tab.Screen 
-        name="Ekip Ayarları" 
+        name="Ekipler" 
         component={EkipAyarScreen} 
         options={{
           tabBarIcon: ({ color, size }) => (

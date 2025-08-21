@@ -27,7 +27,6 @@ export const CONFIG = {
       APPROVE: '/leaves/approve',
     },
     TEAMS: {
-      UPDATE: '/teams/update',
       INFO: '/teams/info',
       MEMBERS: '/teams/members',
       ALL: '/teams/all',

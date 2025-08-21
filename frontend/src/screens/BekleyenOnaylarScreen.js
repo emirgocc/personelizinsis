@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: 0,
-    paddingTop: 24,
+    paddingTop: 0,
     flex: 1,
     minHeight: 300,
     elevation: 2,
