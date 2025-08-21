@@ -18,12 +18,9 @@ export default function EkipAyarScreen() {
     if (showLoading) setLoading(true);
     try {
       if (user.role === 'admin') {
-        // Admin tüm takımları görebilir
-        const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
-          headers: { Authorization: user.token },
-        });
-        setTeamInfo(teamsRes.data[0]); // İlk takımı varsayılan olarak seç
-        setMaxLeaveCount(teamsRes.data[0]?.max_leave_count?.toString() || '');
+        // Admin için varsayılan takım bilgisi (1. ekip)
+        setTeamInfo({ id: 1, max_leave_count: 2 });
+        setMaxLeaveCount('2');
         
         // Tüm personelleri al
         const membersRes = await axios.get(getBackendUrl(API.TEAMS.MEMBERS), {

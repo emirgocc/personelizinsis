@@ -20,17 +20,11 @@ export default function BekleyenOnaylarScreen() {
       
       // Admin için takım bilgisi ekle
       if (user.role === 'admin') {
-        const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
-          headers: { Authorization: user.token },
-        });
-        const teams = teamsRes.data;
-        
         const leavesWithTeam = res.data.map(leave => {
-          const userTeam = teams.find(team => team.id === leave.team_id);
           return { 
             ...leave, 
             isExpanded: false,
-            team_name: userTeam?.name || 'Takım Yok'
+            team_name: leave.team_id ? `${leave.team_id}. Ekip` : 'Takım Yok'
           };
         });
         setPendingLeaves(leavesWithTeam);

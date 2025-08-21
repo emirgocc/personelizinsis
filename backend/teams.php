@@ -16,12 +16,23 @@ function handleTeamUpdate($db, $user) {
 function handleTeamInfo($db, $user) {
     if ($user['role'] == 'admin') {
         // Admin tüm takımları görebilir
-        $teams = $db->query("SELECT * FROM teams ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+        $teams = $db->query("SELECT * FROM teams ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Her takıma ID'ye göre isim ata
+        foreach ($teams as &$team) {
+            $team['display_name'] = $team['id'] . '. Ekip';
+        }
+        
         response($teams);
     } else {
         // Normal kullanıcı sadece kendi takımını görebilir
         $team_id = $user['team_id'];
         $team = $db->query("SELECT * FROM teams WHERE id=$team_id")->fetch(PDO::FETCH_ASSOC);
+        
+        if ($team) {
+            $team['display_name'] = $team['id'] . '. Ekip';
+        }
+        
         response($team);
     }
 }
@@ -29,7 +40,17 @@ function handleTeamInfo($db, $user) {
 function handleTeamMembers($db, $user) {
     if ($user['role'] == 'admin') {
         // Admin tüm personelleri görebilir
-        $members = $db->query("SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.hire_date, u.annual_leave_days, t.name as team_name FROM users u LEFT JOIN teams t ON u.team_id = t.id WHERE u.role != 'admin' ORDER BY t.name, u.first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $members = $db->query("SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.hire_date, u.annual_leave_days, u.team_id FROM users u WHERE u.role != 'admin' ORDER BY u.team_id, u.first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Ekip ID'sine göre isim ata
+        foreach ($members as &$member) {
+            if ($member['team_id']) {
+                $member['team_name'] = $member['team_id'] . '. Ekip';
+            } else {
+                $member['team_name'] = 'Takım Yok';
+            }
+        }
+        
         response($members);
     } else {
         // Normal kullanıcı sadece kendi takımını görebilir
@@ -43,7 +64,13 @@ function handleTeamMembers($db, $user) {
 function handleAllTeams($db, $user) {
     if ($user['role'] != 'admin') response(["error"=>"Yetki yok."], 403);
     
-    $teams = $db->query("SELECT * FROM teams ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+    $teams = $db->query("SELECT * FROM teams ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Her takıma ID'ye göre isim ata
+    foreach ($teams as &$team) {
+        $team['display_name'] = $team['id'] . '. Ekip';
+    }
+    
     response($teams);
 }
 

@@ -77,12 +77,15 @@ try {
     $leaveCount = $db->exec("UPDATE leaves SET leave_type = 'yıllık' WHERE leave_type IS NULL");
     echo "$leaveCount izin kaydına varsayılan tür atandı.\n";
 
+
+
     echo "\n✅ Migration başarıyla tamamlandı!\n";
     echo "Yapılan değişiklikler:\n";
     echo "- Users tablosuna hire_date ve annual_leave_days sütunları eklendi\n";
     echo "- Admin kullanıcıların takım bağlantısı kaldırıldı\n";
     echo "- Yıllık izin günleri işe giriş tarihine göre hesaplandı\n";
     echo "- Leaves tablosuna leave_type sütunu eklendi\n";
+
 
 } catch (Exception $e) {
     echo "❌ Hata: " . $e->getMessage() . "\n";
