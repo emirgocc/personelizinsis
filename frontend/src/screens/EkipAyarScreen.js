@@ -149,7 +149,9 @@ export default function EkipAyarScreen() {
         <View style={styles.whiteSection}>
           <View style={styles.leavesSection}>
             {Object.entries(teamMembers).map(([teamName, members]) => 
-              renderTeamSection(teamName, members)
+              <View key={teamName}>
+                {renderTeamSection(teamName, members)}
+              </View>
             )}
           </View>
         </View>
