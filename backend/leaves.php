@@ -104,7 +104,28 @@ function handleLeavesMonth($db, $user) {
 
 function handleLeavesPending($db, $user) {
     if ($user['role'] != 'admin') response(["error"=>"Yetki yok."], 403);
+    
+    // Bekleyen izinleri getir ve takım isimlerini ekle
     $pending = $db->query("SELECT l.id, u.email, u.first_name, u.last_name, l.start_date, l.end_date, l.status, u.team_id FROM leaves l JOIN users u ON l.user_id=u.id WHERE l.status='beklemede' ORDER BY l.start_date")->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Her izin için takım ismini ekle
+    foreach ($pending as &$leave) {
+        if ($leave['team_id']) {
+            // Takım ismini al
+            $teamStmt = $db->prepare("SELECT name FROM teams WHERE id = ?");
+            $teamStmt->execute([$leave['team_id']]);
+            $teamName = $teamStmt->fetchColumn();
+            
+            if (!empty($teamName)) {
+                $leave['team_name'] = 'Ekip ' . $teamName;
+            } else {
+                $leave['team_name'] = $leave['team_id'] . '. Ekip';
+            }
+        } else {
+            $leave['team_name'] = 'Takım Yok';
+        }
+    }
+    
     response($pending);
 }
 

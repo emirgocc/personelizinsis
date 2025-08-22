@@ -26,7 +26,8 @@ export default function BekleyenOnaylarScreen() {
           return { 
             ...leave, 
             isExpanded: false,
-            team_name: leave.team_id ? `${leave.team_id}. Ekip` : 'Takım Yok'
+            // Backend'den gelen team_name kullan, yoksa eski format
+            team_name: leave.team_name || (leave.team_id ? `${leave.team_id}. Ekip` : 'Takım Yok')
           };
         });
         setPendingLeaves(leavesWithTeam);
