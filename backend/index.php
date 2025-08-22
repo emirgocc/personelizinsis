@@ -112,11 +112,27 @@ if ($path == '/me' && $method == 'GET') {
     if (!$token) response(["error"=>"Token gerekli."], 401);
     $user = verifyToken($db, $token);
     if (!$user) response(["error"=>"Geçersiz token."], 401);
+    
+    // Takım ismini al
+    $team_name = null;
+    if ($user['team_id']) {
+        $teamStmt = $db->prepare("SELECT name FROM teams WHERE id = ?");
+        $teamStmt->execute([$user['team_id']]);
+        $teamName = $teamStmt->fetchColumn();
+        
+        if (!empty($teamName)) {
+            $team_name = 'Ekip ' . $teamName;
+        } else {
+            $team_name = $user['team_id'] . '. Ekip';
+        }
+    }
+    
     response([
         "email" => $user['email'],
         "first_name" => $user['first_name'],
         "last_name" => $user['last_name'],
-        "photo" => $user['photo']
+        "photo" => $user['photo'],
+        "team_name" => $team_name
     ]);
 }
 // --- Default ---

@@ -57,6 +57,7 @@ export default function ProfilScreen() {
       <View style={styles.whiteSection}>
         <View style={styles.infoSection}>
           <Text style={styles.name}>{profile.first_name || ''} {profile.last_name || ''}</Text>
+          
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Telefon</Text>
             <View style={{ flex: 1 }} />
@@ -67,6 +68,13 @@ export default function ProfilScreen() {
             <View style={{ flex: 1 }} />
             <Text style={styles.infoValue}>{profile.email}</Text>
           </View>
+          {profile.team_name && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Ekip</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={[styles.infoValue, styles.teamNameText]}>{profile.team_name}</Text>
+            </View>
+          )}
         </View>
         {/* Log out seçeneği net çizgilerle */}
         <View style={styles.logoutBorder} />
@@ -152,6 +160,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'right',
     minWidth: 80,
+  },
+  teamNameText: {
+    color: '#1976d2',
+    fontWeight: '400',
   },
   menuItem: {
     flexDirection: 'row',
