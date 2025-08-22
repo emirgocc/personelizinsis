@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerSection: {
-    paddingTop: 40,
+    paddingTop: 36,
     paddingHorizontal: 32,
     alignItems: 'center',
   },
@@ -605,16 +605,24 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
     flex: 1,
+    paddingTop: 4,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    marginLeft: 0,
+    marginRight: 0,
   },
   globalSettingsButton: {
-    padding: 8,
+    padding: 0,
   },
   whiteSection: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: 0,
-    paddingTop: 24,
+    paddingTop: 0,
     flex: 1,
     minHeight: 400,
     elevation: 2,
@@ -626,6 +634,7 @@ const styles = StyleSheet.create({
   },
   leavesSection: {
     paddingHorizontal: 0,
+    paddingTop: 24,
   },
   teamContainer: {
     marginBottom: 10,
