@@ -6,9 +6,13 @@ function handleTeamInfo($db, $user) {
         // Admin tüm takımları görebilir
         $teams = $db->query("SELECT * FROM teams ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
         
-        // Her takıma ID'ye göre isim ata
+        // Her takıma isim ata (name sütunu varsa "Ekip" öneki ile, yoksa ID'ye göre)
         foreach ($teams as &$team) {
-            $team['display_name'] = $team['id'] . '. Ekip';
+            if (!empty($team['name'])) {
+                $team['display_name'] = 'Ekip ' . $team['name'];
+            } else {
+                $team['display_name'] = $team['id'] . '. Ekip';
+            }
         }
         
         response($teams);
@@ -18,7 +22,11 @@ function handleTeamInfo($db, $user) {
         $team = $db->query("SELECT * FROM teams WHERE id=$team_id")->fetch(PDO::FETCH_ASSOC);
         
         if ($team) {
-            $team['display_name'] = $team['id'] . '. Ekip';
+            if (!empty($team['name'])) {
+                $team['display_name'] = 'Ekip ' . $team['name'];
+            } else {
+                $team['display_name'] = $team['id'] . '. Ekip';
+            }
         }
         
         response($team);
@@ -33,7 +41,16 @@ function handleTeamMembers($db, $user) {
         // Her personel için kalan izin günlerini hesapla
         foreach ($members as &$member) {
             if ($member['team_id']) {
-                $member['team_name'] = $member['team_id'] . '. Ekip';
+                // Takım ismini al
+                $teamStmt = $db->prepare("SELECT name FROM teams WHERE id = ?");
+                $teamStmt->execute([$member['team_id']]);
+                $teamName = $teamStmt->fetchColumn();
+                
+                if (!empty($teamName)) {
+                    $member['team_name'] = 'Ekip ' . $teamName;
+                } else {
+                    $member['team_name'] = $member['team_id'] . '. Ekip';
+                }
             } else {
                 $member['team_name'] = 'Takım Yok';
             }
@@ -69,9 +86,11 @@ function handleAllTeams($db, $user) {
     
     $teams = $db->query("SELECT * FROM teams ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
     
-    // Her takıma ID'ye göre isim ata (name sütunu kaldırıldı)
+    // Her takıma isim ata (name sütunu varsa kullan, yoksa ID'ye göre)
     foreach ($teams as &$team) {
-        $team['name'] = $team['id'] . '. Ekip';
+        if (empty($team['name'])) {
+            $team['name'] = $team['id'] . '. Ekip';
+        }
     }
     
     response($teams);

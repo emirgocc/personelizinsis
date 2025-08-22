@@ -3,7 +3,7 @@
 export const CONFIG = {
   // Backend sunucu ayarları
   BACKEND: {
-    BASE_URL: 'http://192.168.1.105:8000',
+    BASE_URL: 'http://192.168.1.104:8000',
     TIMEOUT: 10000, // 10 saniye
   },
   
