@@ -4,9 +4,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getBackendUrl, API } from '../config/config';
+import { usePendingCount } from '../context/PendingCountContext';
 
 export default function BekleyenOnaylarScreen() {
   const { user } = useAuth();
+  const { updatePendingCount } = usePendingCount();
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,6 +33,9 @@ export default function BekleyenOnaylarScreen() {
       } else {
         setPendingLeaves(res.data.map(leave => ({ ...leave, isExpanded: false })));
       }
+      
+      // Tab bar'daki sayıyı güncelle
+      updatePendingCount(res.data.length);
     } catch (e) {
       Alert.alert('Hata', 'Bekleyen izinler alınamadı.');
     }
@@ -57,6 +62,7 @@ export default function BekleyenOnaylarScreen() {
       });
       
       Alert.alert('Başarılı', `İzin ${action === 'onayla' ? 'onaylandı' : 'reddedildi'}.`);
+      // Bekleyen onay sayısını güncelle
       fetchPendingLeaves(false);
     } catch (e) {
       Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: 0,
-    paddingTop: 0,
+    paddingTop: 10,
     flex: 1,
     minHeight: 300,
     elevation: 2,
@@ -337,9 +343,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   separator: {
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#e0e0e0',
-    marginHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginHorizontal: 32,
   },
   emptySection: {
     alignItems: 'center',

@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, Image, Button, ActivityIndicator, Alert } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { PendingCountProvider, usePendingCount } from './src/context/PendingCountContext';
 import LoginScreen from './src/screens/LoginScreen';
 import TakvimScreen from './src/screens/TakvimScreen';
 import IzinlerimScreen from './src/screens/IzinlerimScreen';
@@ -13,6 +14,7 @@ import EkipAyarScreen from './src/screens/EkipAyarScreen';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { getBackendUrl, API } from './src/config/config';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -81,7 +83,31 @@ function PersonelTabs() {
     </Tab.Navigator>
   );
 }
+
 function AmirTabs() {
+  const { user } = useAuth();
+  const { pendingCount, updatePendingCount } = usePendingCount();
+
+  const fetchPendingCount = async () => {
+    try {
+      const res = await axios.get(getBackendUrl(API.LEAVES.PENDING), {
+        headers: { Authorization: user.token },
+      });
+      updatePendingCount(res.data.length);
+    } catch (e) {
+      console.log('Bekleyen onay sayısı alınamadı');
+    }
+  };
+
+  useEffect(() => {
+    if (user?.token) {
+      fetchPendingCount();
+      // Her 30 saniyede bir güncelle
+      const interval = setInterval(fetchPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.token]);
+
   return (
     <Tab.Navigator 
       initialRouteName="BekleyenOnaylar"
@@ -104,8 +130,39 @@ function AmirTabs() {
         component={BekleyenOnaylarScreen} 
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="pending-actions" color={color} size={size} />
+            <View style={{ position: 'relative' }}>
+              <MaterialIcons name="pending-actions" color={color} size={size} />
+              {pendingCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -8,
+                  backgroundColor: '#f44336',
+                  borderRadius: 10,
+                  minWidth: 20,
+                  height: 20,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#fff',
+                }}>
+                  <Text style={{
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                  }}>
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
+        }}
+        listeners={{
+          tabPress: () => {
+            // Tab'a tıklandığında sayıyı güncelle
+            fetchPendingCount();
+          },
         }}
       />
       <Tab.Screen 
@@ -148,9 +205,11 @@ function RootNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer theme={theme}>
-        <RootNavigator />
-      </NavigationContainer>
+      <PendingCountProvider>
+        <NavigationContainer theme={theme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </PendingCountProvider>
     </AuthProvider>
   );
 }
