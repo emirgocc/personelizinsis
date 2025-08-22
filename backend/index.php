@@ -36,7 +36,7 @@ if ($path == '/login' && $method == 'POST') {
 }
 
 // --- Auth gerektiren endpointler ---
-$protected = ['/leaves/create','/leaves/mine','/leaves/remaining','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/info','/teams/members','/teams/all','/teams/members-by-team'];
+$protected = ['/leaves/create','/leaves/mine','/leaves/remaining','/leaves/day','/leaves/month','/leaves/pending','/leaves/approve','/teams/info','/teams/members','/teams/all','/teams/members-by-team','/teams/team-leave-limit','/teams/update-team-leave-limit','/teams/change-member-team','/teams/test-db'];
 if (in_array($path, $protected)) {
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $token = $headers['authorization'] ?? '';
@@ -88,6 +88,22 @@ if ($path == '/teams/all' && $method == 'GET') {
 // --- /teams/members-by-team ---
 if ($path == '/teams/members-by-team' && $method == 'GET') {
     handleTeamMembersByTeam($db, $user);
+}
+// --- /teams/team-leave-limit ---
+if ($path == '/teams/team-leave-limit' && $method == 'GET') {
+    handleGetTeamLeaveLimit($db, $user);
+}
+// --- /teams/update-team-leave-limit ---
+if ($path == '/teams/update-team-leave-limit' && $method == 'POST') {
+    handleUpdateTeamLeaveLimit($db, $user);
+}
+// --- /teams/change-member-team ---
+if ($path == '/teams/change-member-team' && $method == 'POST') {
+    handleChangeMemberTeam($db, $user);
+}
+// --- /teams/test-db ---
+if ($path == '/teams/test-db' && $method == 'GET') {
+    handleTestDB($db, $user);
 }
 // --- /me ---
 if ($path == '/me' && $method == 'GET') {

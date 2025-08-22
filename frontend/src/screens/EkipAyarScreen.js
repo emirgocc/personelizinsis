@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, RefreshControl, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, RefreshControl, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,14 @@ export default function EkipAyarScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeams, setExpandedTeams] = useState({});
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [dailyLeaveLimit, setDailyLeaveLimit] = useState('');
+  const [availableTeams, setAvailableTeams] = useState([]);
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  const [showTeamChangeModal, setShowTeamChangeModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [showTeamChangeDropdown, setShowTeamChangeDropdown] = useState(false);
 
   const fetchTeamInfo = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -45,8 +53,24 @@ export default function EkipAyarScreen() {
     setRefreshing(false);
   };
 
+  const fetchAvailableTeams = async () => {
+    try {
+      const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
+        headers: { Authorization: user.token },
+      });
+      console.log('Fetched teams:', teamsRes.data);
+      setAvailableTeams(teamsRes.data);
+    } catch (e) {
+      console.error('Takım listesi alınamadı:', e);
+      setAvailableTeams([]);
+    }
+  };
+
   useEffect(() => {
     fetchTeamInfo();
+    if (user.role === 'admin') {
+      fetchAvailableTeams();
+    }
   }, [user.token]);
 
   const onRefresh = () => {
@@ -59,6 +83,130 @@ export default function EkipAyarScreen() {
       ...prev,
       [teamName]: !prev[teamName]
     }));
+  };
+
+  const openGlobalSettings = async () => {
+    setSelectedTeam(null);
+    setShowTeamDropdown(false);
+    try {
+      const teamsRes = await axios.get(getBackendUrl(API.TEAMS.ALL), {
+        headers: { Authorization: user.token },
+      });
+      console.log('Teams response:', teamsRes.data);
+      
+      setAvailableTeams(teamsRes.data);
+      if (teamsRes.data.length > 0) {
+        const firstTeam = teamsRes.data[0];
+        console.log('Setting first team as selected:', firstTeam);
+        setSelectedTeam(firstTeam.name);
+        setDailyLeaveLimit(firstTeam.max_leave_count.toString());
+      }
+    } catch (e) {
+      console.error('Takım listesi alınamadı:', e);
+    }
+    setShowSettingsModal(true);
+  };
+
+  const onTeamChange = (teamName) => {
+    console.log('onTeamChange called with:', teamName);
+    console.log('Available teams:', availableTeams);
+    
+    setSelectedTeam(teamName);
+    const team = availableTeams.find(t => t.name === teamName);
+    console.log('Found team:', team);
+    
+    if (team) {
+      setDailyLeaveLimit(team.max_leave_count.toString());
+    }
+    setShowTeamDropdown(false);
+  };
+
+  const saveTeamSettings = async () => {
+    try {
+      const limit = parseInt(dailyLeaveLimit);
+      if (isNaN(limit) || limit < 1 || limit > 10) {
+        Alert.alert('Hata', 'Günlük izin limiti 1-10 arasında olmalıdır.');
+        return;
+      }
+
+      console.log('Saving team settings:', { selectedTeam, limit, availableTeams });
+
+      if (selectedTeam) {
+        const teamId = availableTeams.find(team => team.name === selectedTeam)?.id;
+        console.log('Found team ID:', teamId, 'for team name:', selectedTeam);
+        
+        if (teamId) {
+          const requestData = {
+            team_id: teamId,
+            max_leave_count: limit
+          };
+          console.log('Sending request:', requestData);
+          
+          const response = await axios.post(getBackendUrl(API.TEAMS.UPDATE_TEAM_LEAVE_LIMIT), requestData, {
+            headers: { Authorization: user.token },
+          });
+          
+          console.log('Response received:', response.data);
+          
+          Alert.alert('Başarılı', `${selectedTeam} takımının günlük izin limiti güncellendi.`);
+          setShowSettingsModal(false);
+        } else {
+          console.error('Team ID not found for team name:', selectedTeam);
+          Alert.alert('Hata', 'Takım ID bulunamadı.');
+        }
+      }
+    } catch (e) {
+      console.error('Ayar kaydedilemedi:', e);
+      console.error('Error response:', e.response?.data);
+      Alert.alert('Hata', 'Ayar kaydedilemedi. Lütfen tekrar deneyin.');
+    }
+  };
+
+  const changeMemberTeam = async (memberId, newTeamId) => {
+    try {
+      console.log('Changing member team:', { memberId, newTeamId });
+      
+      const requestData = {
+        member_id: memberId,
+        new_team_id: newTeamId
+      };
+      console.log('Sending request:', requestData);
+      
+      const response = await axios.post(getBackendUrl(API.TEAMS.CHANGE_MEMBER_TEAM), requestData, {
+        headers: { Authorization: user.token },
+      });
+
+      console.log('Response received:', response.data);
+
+      Alert.alert('Başarılı', response.data.message);
+      fetchTeamInfo(false);
+    } catch (e) {
+      console.error('Ekip değişikliği yapılamadı:', e);
+      console.error('Error response:', e.response?.data);
+      Alert.alert('Hata', 'Ekip değişikliği yapılamadı. Lütfen tekrar deneyin.');
+    }
+  };
+
+  const openTeamChangeModal = (member) => {
+    if (!availableTeams || availableTeams.length === 0) {
+      Alert.alert('Hata', 'Takım listesi yüklenemedi. Lütfen tekrar deneyin.');
+      return;
+    }
+
+    // Mevcut ekip hariç diğer tüm ekipleri filtrele
+    const availableTeamsForMember = availableTeams.filter(team => team.name !== member.team_name);
+    
+    if (availableTeamsForMember.length === 0) {
+      Alert.alert('Bilgi', 'Bu personeli başka bir ekibe atayamazsınız çünkü başka ekip yok.');
+      return;
+    }
+
+    // Modal state'lerini ayarla
+    setSelectedTeam(null);
+    setShowTeamDropdown(false);
+    setShowTeamChangeDropdown(false);
+    setShowTeamChangeModal(true);
+    setSelectedMember(member);
   };
 
   const renderTeamSection = (teamName, members) => {
@@ -80,12 +228,14 @@ export default function EkipAyarScreen() {
               <Text style={styles.teamMemberCount}>{members.length} üye</Text>
             </View>
           </View>
-          <MaterialIcons 
-            name={isExpanded ? 'expand-less' : 'expand-more'} 
-            size={24} 
-            color="#666"
-            style={styles.expandIcon}
-          />
+          <View style={styles.headerActions}>
+            <MaterialIcons 
+              name={isExpanded ? 'expand-less' : 'expand-more'} 
+              size={24} 
+              color="#666"
+              style={styles.expandIcon}
+            />
+          </View>
         </TouchableOpacity>
         
         {isExpanded && (
@@ -105,13 +255,23 @@ export default function EkipAyarScreen() {
                     </Text>
                     <Text style={styles.memberEmail}>{member.email}</Text>
                   </View>
-                  <View style={styles.leaveInfo}>
-                    <Text style={styles.leaveDaysNumber}>
-                      {member.remaining_leave_days || 0} kalan
-                    </Text>
-                    <Text style={styles.leaveDaysText}>
-                      izin günü
-                    </Text>
+                  <View style={styles.memberActions}>
+                    <View style={styles.leaveInfo}>
+                      <Text style={styles.leaveDaysNumber}>
+                        {member.remaining_leave_days || 0} kalan
+                      </Text>
+                      <Text style={styles.leaveDaysText}>
+                        izin günü
+                      </Text>
+                    </View>
+                    {user.role === 'admin' && (
+                      <TouchableOpacity 
+                        style={styles.changeTeamButton}
+                        onPress={() => openTeamChangeModal(member)}
+                      >
+                        <MaterialIcons name="swap-horiz" size={16} color="#1976d2" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))}
@@ -140,9 +300,20 @@ export default function EkipAyarScreen() {
       >
         <View style={styles.topBg}>
           <View style={styles.headerSection}>
-            <Text style={styles.headerSubtitle}>
-              {user.role === 'admin' ? 'Tüm Personeller' : `${Object.values(teamMembers).flat().length} üye`}
-            </Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.headerSubtitle}>
+                {user.role === 'admin' ? 'Tüm Personeller' : `${Object.values(teamMembers).flat().length} üye`}
+              </Text>
+              {user.role === 'admin' && (
+                <TouchableOpacity 
+                  style={styles.globalSettingsButton}
+                  onPress={openGlobalSettings}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="settings" size={24} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
         
@@ -156,6 +327,250 @@ export default function EkipAyarScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Ekip Ayarları Modal */}
+      <Modal
+        visible={showSettingsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowSettingsModal(false);
+          setShowTeamDropdown(false);
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => {
+            setShowTeamDropdown(false);
+          }}
+        >
+          <TouchableOpacity 
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Takım İzin Ayarları
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setShowTeamDropdown(false);
+                }}
+                style={styles.closeButton}
+              >
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Takım Seç</Text>
+                {availableTeams && availableTeams.length > 0 ? (
+                  <View style={styles.dropdownContainer}>
+                    <TouchableOpacity
+                      style={styles.dropdownButton}
+                      onPress={() => setShowTeamDropdown(!showTeamDropdown)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.dropdownButtonText}>
+                        {selectedTeam || 'Takım seçin'}
+                      </Text>
+                      <MaterialIcons 
+                        name={showTeamDropdown ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+                        size={20} 
+                        color="#666" 
+                      />
+                    </TouchableOpacity>
+                    
+                    {showTeamDropdown && (
+                      <View style={styles.dropdownMenu}>
+                        {availableTeams.map((team, index) => (
+                          <TouchableOpacity
+                            key={team.id}
+                            style={[
+                              styles.dropdownOption,
+                              index === availableTeams.length - 1 && styles.dropdownOptionLast
+                            ]}
+                            onPress={() => {
+                              console.log('Dropdown option pressed:', team.name);
+                              onTeamChange(team.name);
+                            }}
+                          >
+                            <Text style={styles.dropdownOptionText}>
+                              {team.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <Text style={styles.noTeamsText}>Takım bulunamadı</Text>
+                )}
+              </View>
+              
+              <View style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Günlük İzin Limiti</Text>
+                <TextInput
+                  style={styles.settingInput}
+                  value={dailyLeaveLimit}
+                  onChangeText={setDailyLeaveLimit}
+                  placeholder="2"
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+                <Text style={styles.settingHint}>kişi (1-10)</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.saveButton}
+                onPress={saveTeamSettings}
+                disabled={!selectedTeam || !availableTeams || availableTeams.length === 0}
+              >
+                <Text style={styles.saveButtonText}>Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Ekip Değiştirme Modal */}
+      <Modal
+        visible={showTeamChangeModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowTeamChangeModal(false);
+          setShowTeamChangeDropdown(false);
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => {
+            setShowTeamChangeDropdown(false);
+          }}
+        >
+          <TouchableOpacity 
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Ekip Değiştir
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowTeamChangeModal(false);
+                  setShowTeamChangeDropdown(false);
+                }}
+                style={styles.closeButton}
+              >
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {selectedMember && (
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberInfoText}>
+                    {selectedMember.first_name} {selectedMember.last_name} personelini hangi ekibe atamak istiyorsunuz?
+                  </Text>
+                </View>
+              )}
+              
+              <View style={styles.settingItem}>
+                <Text style={styles.settingLabel}>Yeni Ekip</Text>
+                {availableTeams && availableTeams.length > 0 ? (
+                  <View style={styles.dropdownContainer}>
+                    <TouchableOpacity
+                      style={styles.dropdownButton}
+                      onPress={() => setShowTeamChangeDropdown(!showTeamChangeDropdown)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.dropdownButtonText}>
+                        {selectedTeam || 'Ekip seçin'}
+                      </Text>
+                      <MaterialIcons 
+                        name={showTeamChangeDropdown ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+                        size={20} 
+                        color="#666" 
+                      />
+                    </TouchableOpacity>
+                    
+                    {showTeamChangeDropdown && (
+                      <View style={styles.dropdownMenu}>
+                        {availableTeams
+                          .filter(team => team.name !== (selectedMember?.team_name || ''))
+                          .map((team, index) => (
+                            <TouchableOpacity
+                              key={team.id}
+                              style={[
+                                styles.dropdownOption,
+                                index === availableTeams.filter(t => t.name !== (selectedMember?.team_name || '')).length - 1 && styles.dropdownOptionLast
+                              ]}
+                              onPress={() => {
+                                console.log('Team change dropdown option pressed:', team.name);
+                                setSelectedTeam(team.name);
+                                setShowTeamChangeDropdown(false);
+                              }}
+                            >
+                              <Text style={styles.dropdownOptionText}>
+                                {team.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <Text style={styles.noTeamsText}>Takım bulunamadı</Text>
+                )}
+              </View>
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.cancelButton}
+                  onPress={() => {
+                    setShowTeamChangeModal(false);
+                    setShowTeamChangeDropdown(false);
+                    setSelectedTeam(null);
+                    setSelectedMember(null);
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>İptal</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.confirmButton,
+                    !selectedTeam && styles.confirmButtonDisabled
+                  ]}
+                  onPress={() => {
+                    if (selectedTeam && selectedMember) {
+                      const team = availableTeams.find(t => t.name === selectedTeam);
+                      if (team) {
+                        changeMemberTeam(selectedMember.id, team.id);
+                        setShowTeamChangeModal(false);
+                        setShowTeamChangeDropdown(false);
+                        setSelectedTeam(null);
+                        setSelectedMember(null);
+                      }
+                    }
+                  }}
+                  disabled={!selectedTeam}
+                >
+                  <Text style={styles.confirmButtonText}>Tamam</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -178,11 +593,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     alignItems: 'center',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   headerSubtitle: {
     fontSize: 16,
     color: '#888',
     fontWeight: '400',
     textAlign: 'center',
+    flex: 1,
+  },
+  globalSettingsButton: {
+    padding: 8,
   },
   whiteSection: {
     backgroundColor: '#fff',
@@ -201,7 +626,6 @@ const styles = StyleSheet.create({
   },
   leavesSection: {
     paddingHorizontal: 0,
-    
   },
   teamContainer: {
     marginBottom: 10,
@@ -250,6 +674,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   expandableContent: {
     paddingTop: 5,
     paddingBottom: 10,
@@ -257,9 +685,6 @@ const styles = StyleSheet.create({
   },
   expandIcon: {
     marginRight: 15,
-  },
-  memberList: {
-    // No specific styles for memberList, it's just a container for member items
   },
   memberItem: {
     flexDirection: 'row',
@@ -291,8 +716,12 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 2,
   },
+  memberActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   leaveInfo: {
-    marginLeft: 10,
+    marginRight: 15,
   },
   leaveDaysNumber: {
     fontSize: 12,
@@ -304,5 +733,183 @@ const styles = StyleSheet.create({
     color: '#1976d2',
     marginTop: 2,
     fontWeight: '500'
+  },
+  changeTeamButton: {
+    padding: 8,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    marginBottom: 20,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+  },
+  settingInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    width: 80,
+    textAlign: 'center',
+    marginRight: 10,
+  },
+  settingHint: {
+    fontSize: 14,
+    color: '#666',
+  },
+  saveButton: {
+    backgroundColor: '#1976d2',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  noTeamsText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    paddingVertical: 10,
+  },
+  dropdownContainer: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 200,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    minHeight: 48,
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    zIndex: 1001,
+    maxHeight: 200,
+  },
+  dropdownOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eee',
+  },
+  dropdownOptionLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  cancelButton: {
+    backgroundColor: '#e0e0e0',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    backgroundColor: '#1976d2',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 10,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.7,
+  },
+  memberInfo: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  memberInfoText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
   },
 });

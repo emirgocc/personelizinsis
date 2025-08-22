@@ -3,7 +3,7 @@
 export const CONFIG = {
   // Backend sunucu ayarları
   BACKEND: {
-    BASE_URL: 'http://192.168.1.103:8000',
+    BASE_URL: 'http://192.168.1.105:8000',
     TIMEOUT: 10000, // 10 saniye
   },
   
@@ -31,6 +31,9 @@ export const CONFIG = {
       MEMBERS: '/teams/members',
       ALL: '/teams/all',
       MEMBERS_BY_TEAM: '/teams/members-by-team',
+      TEAM_LEAVE_LIMIT: '/teams/team-leave-limit',
+      UPDATE_TEAM_LEAVE_LIMIT: '/teams/update-team-leave-limit',
+      CHANGE_MEMBER_TEAM: '/teams/change-member-team',
     },
   },
 };
