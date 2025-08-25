@@ -2,6 +2,7 @@
   "expo": {
     "name": "Personel İzin Sistemi",
     "slug": "personelizinsis",
+    "owner": "emirgoc",
     "version": "1.0.0",
     "sdkVersion": "53.0.0",
     "platforms": [
